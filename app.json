@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Agam Mandira",
+    "slug": "agam-mandira",
+    "scheme": "com.yourorg.templedevotee",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./src/assets/logo-diya.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FCFAF6"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.agam.app",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.agam.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/icon.png",
+        "backgroundColor": "#FCFAF6"
+      },
+      "permissions": [
+        "NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/icon.png",
+          "color": "#7A263A"
+        }
+      ],
+      "expo-localization"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d61668a0-8952-499f-a569-01b4d3b1d836"
+      }
+    },
+    "owner": "atomwalk"
+  }
+}
