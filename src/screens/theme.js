@@ -7,7 +7,7 @@ export const theme = {
   sky: '#042C53',
   skyText: '#E6F1FB',
   skyMuted: '#85B7EB',
-  skyLine: '#378ADD',      // icons / metadata on sky
+  skyLine: '#378ADD',
   skyChipBorder: '#185FA5',
   star: '#B5D4F4',
 
@@ -31,6 +31,12 @@ export const theme = {
   sacredTint: '#FAEEDA',
   sacredText: '#412402',
   sacredMuted: '#854F0B',
+
+  errorText: '#5C1A0E',
+  success: '#1B8A4C',
+  successTint: '#E6F7EC',
+  error: '#C4321E',
+  errorTint: '#FCE8E6',
 };
 
 export const spacing = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32 };

@@ -5,7 +5,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 
 export default function AuthNavigator({ onAuthenticated }) {
-    const [screen, setScreen] = useState('register'); // 'register' | 'login'
+    const [screen, setScreen] = useState('login'); // 'register' | 'login'
 
     if (screen === 'login') {
         return (

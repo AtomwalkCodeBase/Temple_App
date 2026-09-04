@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import MoonPhase from '../components/MoonPhase';
 import TithiStrip from '../components/TithiStrip';
-import { getDayPanchang, getTithiStrip, getUpcomingEvents } from '../services/api';
+import { getDayPanchang, getMyProfile, getTithiStrip, getUpcomingEvents } from '../services/api';
 import { getGreeting } from '../services/i18n';
 import { theme, spacing, radius } from '../screens/theme';
 import Screen from '../components/Screen';
@@ -21,16 +21,35 @@ export default function HomeScreen({ navigation }) {
   const [upcoming, setUpcoming] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
+    setError(null);
     const today = dayjs().format('YYYY-MM-DD');
     const stripStart = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
-    const [d, s, u] = await Promise.all([
-      getDayPanchang(today, LOCATION_ID),
-      getTithiStrip(stripStart, LOCATION_ID, 7),
-      getUpcomingEvents(30),
-    ]);
-    setDay(d); setStrip(s.days); setUpcoming(u.events);
+
+    try {
+      const profileData = await getMyProfile();
+
+      // Only call other APIs after profile is successfully loaded
+      if (profileData) {
+        const locationId = profileData.preferred_location;
+
+        const [d, s, u] = await Promise.all([
+          getDayPanchang(today, locationId),
+          getTithiStrip(stripStart, locationId, 7),
+          getUpcomingEvents(30),
+        ]);
+
+        setDay({ ...d, location_name: profileData.location_name });
+
+        setStrip(s.days);
+        setUpcoming(u.events);
+      }
+    } catch (e) {
+      console.warn(e);
+      setError(e.message || 'Could not load your panchang.');
+    }
   }, []);
 
   useEffect(() => {
@@ -50,6 +69,21 @@ export default function HomeScreen({ navigation }) {
           <ActivityIndicator color={theme.moon} size="large" />
         </View>
       </Screen>
+    );
+  }
+
+  // day can be null on first load failure, or after a refresh failure that
+  // never previously succeeded — never assume it's populated.
+  if (!day) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.surface, padding: 24 }]}>
+        <Ionicons name="cloud-offline-outline" size={40} color={theme.textMuted} />
+        <Text style={styles.errorTitle}>Couldn't load today's panchang</Text>
+        <Text style={styles.errorSub}>{error}</Text>
+        <Pressable style={styles.retryButton} onPress={() => { setLoading(true); load().finally(() => setLoading(false)); }}>
+          <Text style={styles.retryButtonText}>Try again</Text>
+        </Pressable>
+      </View>
     );
   }
 
@@ -87,12 +121,20 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.pakshaLine}>{day.lunar_month_local} {day.paksha_local} ପକ୍ଷ</Text>
             <Text style={styles.tithiBig}>{day.tithi_local}</Text>
             <Text style={styles.tithiSub}>
-              {day.tithi} · until {day.tithi_end_display} · {day.nakshatra}
+              {day.tithi}{day.tithi_end_display ? ` · until ${day.tithi_end_display}` : ''} · {day.nakshatra}
             </Text>
             <Text style={styles.metaLine}>
-              <Ionicons name="sunny-outline" size={12} color={theme.skyLine} /> {day.sunrise}
-              {'   '}
-              <Ionicons name="moon-outline" size={12} color={theme.skyLine} /> {day.sunset}
+              {day.sunrise && (
+                <>
+                  <Ionicons name="sunny-outline" size={12} color={theme.skyLine} /> {day.sunrise}
+                  {'   '}
+                </>
+              )}
+              {day.sunset && (
+                <>
+                  <Ionicons name="moon-outline" size={12} color={theme.skyLine} /> {day.sunset}
+                </>
+              )}
               {daysToPurnima != null &&
                 `   Purnima in ${daysToPurnima} day${daysToPurnima === 1 ? '' : 's'}`}
             </Text>
@@ -126,27 +168,75 @@ export default function HomeScreen({ navigation }) {
 
         {/* ---- Upcoming ---- */}
         <Text style={styles.sectionTitle}>Coming up</Text>
-        {upcoming.map((ev, i) => (
-          <Pressable
-            key={`${ev.kind}-${ev.id}`}
-            style={[styles.upcomingRow, i < upcoming.length - 1 && styles.rowBorder]}
-            onPress={() =>
-              ev.kind === 'religious'
-                ? navigation.navigate('EventDetail', { code: ev.code, date: ev.date })
-                : navigation.navigate('EventDetail', { userEventId: ev.id })}
-          >
-            <Text style={styles.upcomingDate}>{dayjs(ev.date).format('D MMM')}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.upcomingTitle}>{ev.title}</Text>
-              <Text style={styles.upcomingSub}>{ev.subtitle}</Text>
-            </View>
-            <Ionicons
-              name={ev.kind === 'user' ? 'people-outline' : 'notifications-outline'}
-              size={16}
-              color={ev.kind === 'user' ? theme.accent : theme.textMuted}
-            />
-          </Pressable>
-        ))}
+
+        {/* Festivals */}
+        {upcoming.filter((ev) => ev.kind === 'religious').length > 0 && (
+          <>
+            <Text style={styles.subSectionTitle}>Festivals</Text>
+
+            {upcoming
+              .filter((ev) => ev.kind === 'religious')
+              .map((ev) => (
+                <Pressable
+                  key={`${ev.kind}-${ev.id}`}
+                  style={[styles.upcomingRow, styles.festivalRow]}
+                  onPress={() =>
+                    navigation.navigate('EventDetail', {
+                      code: ev.code,
+                      date: ev.date,
+                    })
+                  }
+                >
+                  <Text style={styles.upcomingDate}>
+                    {dayjs(ev.date).format('D MMM')}
+                  </Text>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.upcomingTitle}>{ev.title}</Text>
+                    <Text style={styles.upcomingSub}>{ev.subtitle}</Text>
+                  </View>
+
+                  <View style={[styles.kindBadge, styles.festivalBadge]}>
+                    <Ionicons name="notifications-outline" size={16} color={theme.textMuted} />
+                  </View>
+                </Pressable>
+              ))}
+          </>
+        )}
+
+        {/* Personal Events */}
+        {upcoming.filter((ev) => ev.kind === 'user').length > 0 && (
+          <>
+            <Text style={styles.subSectionTitle}>Personal Events</Text>
+
+            {upcoming
+              .filter((ev) => ev.kind === 'user')
+              .map((ev) => (
+                <Pressable
+                  key={`${ev.kind}-${ev.id}`}
+                  style={[styles.upcomingRow, styles.personalRow]}
+                  onPress={() =>
+                    navigation.navigate('EventDetail', {
+                      userEventId: ev.id,
+                    })
+                  }
+                >
+                  <Text style={styles.upcomingDate}>
+                    {dayjs(ev.date).format('D MMM')}
+                  </Text>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.upcomingTitle}>{ev.title}</Text>
+                    <Text style={styles.upcomingSub}>{ev.subtitle}</Text>
+                  </View>
+
+                  <View style={[styles.kindBadge, styles.personalBadge]}>
+                    <Ionicons name="people-outline" size={13} color={theme.accent} />
+                  </View>
+                </Pressable>
+              ))}
+          </>
+        )}
         <View style={{ height: 24 }} />
       </ScrollView>
     </Screen>
@@ -155,6 +245,13 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorTitle: { fontSize: 16, fontWeight: '600', color: theme.text, marginTop: 12 },
+  errorSub: { fontSize: 13, color: theme.textMuted, textAlign: 'center', marginTop: 4 },
+  retryButton: {
+    backgroundColor: theme.accent, borderRadius: radius.m,
+    paddingVertical: 11, paddingHorizontal: 22, marginTop: 18,
+  },
+  retryButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   hero: { backgroundColor: theme.sky, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18 },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   greeting: { color: theme.skyText, fontSize: 16, fontWeight: '600' },
@@ -180,12 +277,34 @@ const styles = StyleSheet.create({
     fontSize: 13, fontWeight: '600', color: theme.textMuted,
     marginTop: 14, marginHorizontal: 18, marginBottom: 2,
   },
-  upcomingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: 14, paddingVertical: 9, paddingHorizontal: 4,
-  },
+  // upcomingRow: {
+  //   flexDirection: 'row', alignItems: 'center', gap: 12,
+  //   marginHorizontal: 14, paddingVertical: 9, paddingHorizontal: 4,
+  // },
   rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
   upcomingDate: { fontSize: 13, color: theme.accent, fontWeight: '600', minWidth: 44 },
   upcomingTitle: { fontSize: 14, fontWeight: '600', color: theme.text },
   upcomingSub: { fontSize: 12, color: theme.textMuted },
+  subSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.textMuted,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+
+  upcomingRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 14, paddingVertical: 9, paddingHorizontal: 10,
+    borderLeftWidth: 3, borderRadius: radius.sm,
+  },
+  festivalRow: { borderLeftColor: theme.sacred, backgroundColor: theme.sacredTint + '40', marginBottom: 8 },
+  personalRow: { borderLeftColor: theme.accent, backgroundColor: theme.accentTint + '40' },
+  kindBadge: {
+    width: 24, height: 24, borderRadius: radius.pill,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  festivalBadge: { backgroundColor: theme.sacredTint },
+  personalBadge: { backgroundColor: theme.accentTint },
 });

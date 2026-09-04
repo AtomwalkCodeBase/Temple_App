@@ -1,6 +1,6 @@
 // MonthScreen.js — grid of the month with a micro moon per day, tapping a
 // date opens a bottom sheet with that day's tithi + festival + quick add.
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, Pressable, ScrollView, ActivityIndicator,
   StyleSheet, Dimensions,
@@ -8,9 +8,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import MoonPhase from '../components/MoonPhase';
-import { getMonthGrid, getDayPanchang, listUserEvents, getTithiStrip } from '../services/api';
+import { getMonthGrid, getDayPanchang, listUserEvents, getTithiStrip, getMyProfile } from '../services/api';
 import { theme, radius } from '../screens/theme';
 import Screen from '../components/Screen';
+import { EVENT_TYPES } from './AddEventScreen';
 
 const LOCATION_ID = 1; // TODO: from Profile
 const CELL_SIZE = Math.floor((Dimensions.get('window').width - 32) / 7);
@@ -24,13 +25,22 @@ export default function MonthScreen({ navigation, route }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [locationName, setLocationName] = useState(null);
   const [myEventDates, setMyEventDates] = useState(new Set());
+  const [myEvents, setMyEvents] = useState([]);
+
+  const [locationName, setLocationName] = useState(null);
+  const [locationId, setLocationId] = useState(null);
 
   useEffect(() => {
-    getDayPanchang(dayjs().format('YYYY-MM-DD'), LOCATION_ID)
-      .then((d) => setLocationName(d?.location_name || null))
-      .catch(() => setLocationName(null));
+    getMyProfile()
+      .then((profileData) => {
+        setLocationName(profileData?.location_name || null);
+        setLocationId(profileData?.preferred_location || null);
+      })
+      .catch(() => {
+        setLocationName(null);
+        setLocationId(null);
+      });
   }, []);
 
   useEffect(() => {
@@ -38,6 +48,7 @@ export default function MonthScreen({ navigation, route }) {
       listUserEvents()
         .then((res) => {
           const list = Array.isArray(res) ? res : (res?.results ?? []);
+          setMyEvents(list);
           setMyEventDates(new Set(list.map((e) => e.event_date)));
         })
         .catch(() => setMyEventDates(new Set()));
@@ -68,7 +79,7 @@ export default function MonthScreen({ navigation, route }) {
     try {
       const start = c.startOf('month');
       const daysInMonth = c.daysInMonth();
-      const res = await getTithiStrip(start.format('YYYY-MM-DD'), LOCATION_ID, daysInMonth);
+      const res = await getTithiStrip(start.format('YYYY-MM-DD'), locationId, daysInMonth);
       const list = res?.days ?? [];
       setDays(list);
       if (!list.length) console.warn('getTithiStrip returned no days:', res);
@@ -165,6 +176,9 @@ export default function MonthScreen({ navigation, route }) {
                   ]}>
                     {dayjs(d.date).date()}
                   </Text>
+                  <View style={styles.cellDotRow}>
+                    {d.has_user_event && <View style={styles.eventDot} />}
+                  </View>
                 </Pressable>
               );
             })}
@@ -185,11 +199,13 @@ export default function MonthScreen({ navigation, route }) {
             date={selectedDate}
             detail={selectedDetail}
             loading={detailLoading}
+            dayEvents={myEvents.filter(
+              (e) => dayjs(e.event_date).format('YYYY-MM-DD') === selectedDate
+            )}
             onClose={() => setSelectedDate(null)}
-            onFestivalPress={(code) =>
-              navigation.navigate('EventDetail', { code, date: selectedDate })}
-            onAddEvent={() =>
-              navigation.navigate('AddEvent', { prefillDate: selectedDate })}
+            onFestivalPress={(code) => navigation.navigate('EventDetail', { code, date: selectedDate })}
+            onEventPress={(userEventId) => navigation.navigate('EventDetail', { userEventId })}
+            onAddEvent={() => navigation.navigate('AddEvent', { prefillDate: selectedDate })}
           />
         )}
       </View>
@@ -197,47 +213,112 @@ export default function MonthScreen({ navigation, route }) {
   );
 }
 
-function DaySheet({ date, detail, loading, onClose, onFestivalPress, onAddEvent }) {
+function DaySheet({ date, detail, loading, dayEvents, onClose, onFestivalPress, onEventPress, onAddEvent }) {
   const festival = detail?.religious_events?.[0];
+
+  const getEventTypeLabel = (eventTypeKey) => {
+    const eventType = EVENT_TYPES.find(item => item.key === eventTypeKey);
+    return eventType ? eventType.label : eventTypeKey; // fallback to key if not found
+  };
+
   return (
     <View style={styles.sheet}>
       <View style={styles.sheetHandle} />
+
       {loading || !detail ? (
         <ActivityIndicator color={theme.accent} style={{ paddingVertical: 20 }} />
       ) : (
         <>
+          {/* Fixed Header */}
           <View style={styles.sheetHeader}>
-            <MoonPhase tithiNumber={detail.tithi_number} paksha={detail.paksha.toUpperCase()} size={34} />
+            <MoonPhase
+              tithiNumber={detail.tithi_number}
+              paksha={detail.paksha.toUpperCase()}
+              size={34}
+            />
+
             <View style={{ marginLeft: 10, flex: 1 }}>
-              <Text style={styles.sheetDate}>{dayjs(date).format('dddd, D MMMM')}</Text>
+              <Text style={styles.sheetDate}>
+                {dayjs(date).format('dddd, D MMMM')}
+              </Text>
               <Text style={styles.sheetSub}>
-                {detail.lunar_month} {detail.paksha} {detail.tithi_local || detail.tithi}
+                {detail.lunar_month} {detail.paksha}{' '} {detail.tithi_local || detail.tithi}
               </Text>
             </View>
+
             <Pressable onPress={onClose} hitSlop={10}>
               <Ionicons name="close" size={20} color={theme.textMuted} />
             </Pressable>
           </View>
 
-          {festival ? (
-            <Pressable style={styles.festivalCard} onPress={() => onFestivalPress(festival.code)}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.festivalTitle}>{festival.name}</Text>
-                <Text style={styles.festivalSub}>
-                  {festival.name_local} · {festival.importance === 'MAJOR' ? 'Major festival' : 'Festival'}
-                </Text>
+          {/* Scrollable Content */}
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetScrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {festival ? (
+              <>
+                <Pressable
+                  style={styles.festivalCard}
+                  onPress={() => onFestivalPress(festival.code)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.festivalTitle}>{festival.name}</Text>
+                    <Text style={styles.festivalSub}>
+                      {festival.name_local} ·{' '} {festival.importance === 'MAJOR' ? 'Major festival' : 'Festival'}
+                    </Text>
+                  </View>
+
+                  <Ionicons name="chevron-forward" size={16} color={theme.accent} />
+                </Pressable>
+
+                {dayEvents.length > 0 && (
+                  <View style={[styles.festivalCard, { marginTop: 10, gap: 6, marginBottom: 50, flexDirection: 'column', alignItems: 'stretch' },]}>
+                    <Text style={styles.festivalTitle}>Personal Events</Text>
+
+                    {dayEvents.map((e) => (
+                      <Pressable key={e.id ?? `${e.event_date}-${e.title}`} style={styles.userEventRow} onPress={() => onEventPress(e.id)}>
+                        <View style={styles.eventDot} />
+                        <Text style={styles.userEventText}> {e.title || e.name} </Text>
+                        <Text style={[styles.chipText, styles.chipActive]}>
+                          ({getEventTypeLabel(e.event_type)})
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={styles.noFestivalCard}>
+                <Text style={styles.noFestivalText}>No festival today</Text>
+
+                {dayEvents.length > 0 && (
+                  <View style={{ marginTop: 10, gap: 6 }}>
+                    {dayEvents.map((e) => (
+                      <View key={e.id ?? `${e.event_date}-${e.title}`} style={styles.userEventRow}>
+                        <View style={styles.eventDot} />
+
+                        <Text style={styles.userEventText}> {e.title || e.name} </Text>
+
+                        <Text style={[styles.chipText, styles.chipActive]}>
+                          ({getEventTypeLabel(e.event_type)})
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <Pressable style={styles.addButton} onPress={onAddEvent}>
+                  <Ionicons name="add" size={15} color="#fff" />
+                  <Text style={styles.addButtonText}>
+                    {' '}Add event on this day
+                  </Text>
+                </Pressable>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.accent} />
-            </Pressable>
-          ) : (
-            <View style={styles.noFestivalCard}>
-              <Text style={styles.noFestivalText}>No festival today</Text>
-              <Pressable style={styles.addButton} onPress={onAddEvent}>
-                <Ionicons name="add" size={15} color="#fff" />
-                <Text style={styles.addButtonText}> Add event on this day</Text>
-              </Pressable>
-            </View>
-          )}
+            )}
+          </ScrollView>
         </>
       )}
     </View>
@@ -287,10 +368,24 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface, borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.border, borderRadius: radius.m, padding: 12,
   },
+  personalEventsCard: {
+    backgroundColor: theme.accentTint,
+    borderLeftWidth: 3, borderLeftColor: theme.accent,
+    borderRadius: radius.m, padding: 12, gap: 6,
+  },
+  personalEventsTitle: { fontSize: 14, fontWeight: '600', color: theme.accentDeep, marginBottom: 2 },
   noFestivalText: { fontSize: 14, fontWeight: '600', color: theme.text },
   addButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.accent, borderRadius: radius.m, paddingVertical: 8, marginTop: 10,
   },
   addButtonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  cellDotRow: { height: 6, marginTop: 2, justifyContent: 'center', alignItems: 'center' },
+  eventDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.accent },
+  userEventRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  userEventText: { fontSize: 13, color: theme.text, marginLeft: 6 },
+  chipActive: { backgroundColor: theme.accentTint, borderColor: theme.accent, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3, },
+  chipText: { fontSize: 13, color: theme.accentDeep, fontWeight: '600' },
+  sheetScroll: { maxHeight: 320, flexGrow: 0 },
+  sheetScrollContent: { paddingBottom: 16 },
 });

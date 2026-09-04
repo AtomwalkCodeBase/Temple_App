@@ -112,7 +112,11 @@ function FestivalDetail({ navigation, route }) {
         </View>
 
         <View style={{ padding: 16 }}>
-          {!!data.description && <Text style={styles.description}>{data.description}</Text>}
+          {!!data.description &&
+            <>
+              <Text style={styles.descriptionHeading}>Why we celebrate</Text>
+              <Text style={styles.description}>{data.description}</Text>
+            </>}
 
           <View style={styles.card}>
             <View style={styles.rowBetween}>
@@ -193,12 +197,17 @@ function UserEventDetail({ navigation, route }) {
 
   const shareInvite = async () => {
     try {
+      const eventLink = `https://agam.app/event/user/${event.id}`;
+
       await Share.share({
         message:
           `You're invited: ${event.title}\n` +
           `${dayjs(event.event_date).format('dddd, D MMMM YYYY')}` +
-          (event.start_time ? ` at ${dayjs(`2000-01-01 ${event.start_time}`).format('h:mm a')}` : '') +
-          `\n\nShared from Panji Calendar`,
+          (event.start_time
+            ? ` at ${dayjs(`2000-01-01 ${event.start_time}`).format('h:mm a')}`
+            : '') +
+          `\n\nShared from Agam Mandira` +
+          `\n\nOpen event: ${eventLink}`,
       });
     } catch (e) {
       Alert.alert('Could not share', e.message);
@@ -384,6 +393,7 @@ const styles = StyleSheet.create({
   heroSub: { color: theme.skyMuted, fontSize: 13, marginTop: 1 },
   importanceBadge: { backgroundColor: theme.sacredTint, borderRadius: 10, alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 9, paddingVertical: 3 },
   importanceBadgeText: { color: theme.sacredText, fontSize: 11, fontWeight: '600' },
+  descriptionHeading: { color: theme.text, fontSize: 21, fontWeight: '700', marginTop: 2 },
   description: { fontSize: 13, color: theme.textMuted, lineHeight: 20 },
   card: { backgroundColor: theme.surfaceAlt, borderRadius: radius.m, padding: 14, marginTop: 10 },
   cardTitle: { fontSize: 14, fontWeight: '600', color: theme.text, marginBottom: 4 },

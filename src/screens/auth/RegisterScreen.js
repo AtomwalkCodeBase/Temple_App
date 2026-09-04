@@ -8,6 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { REGISTER_URL } from '../../services/api';
 import { theme, radius } from '../../screens/theme';
 import { getPreLoginGreeting } from '../../services/i18n';
+import StatusModal from '../../components/StatusModal';
+import { Eye, EyeClosed } from 'lucide-react-native';
+import * as SecureStore from 'expo-secure-store';
 
 export default function RegisterScreen({ onRegistered, onGoToLogin }) {
   const [firstName, setFirstName] = useState('');
@@ -16,14 +19,19 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
   const [password, setPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalData, setModalData] = useState({ title: "", message: "" });
+  const [showPassword, setShowPassword] = useState(false);
 
   const submit = async () => {
     if (!username || !password) {
-      Alert.alert('Missing details', 'Username and password are required.');
+      setShowModal(true);
+      setModalData({ title: "Missing details", message: "Username and password are required." })
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Password too short', 'Use at least 8 characters.');
+      setShowModal(true);
+      setModalData({ title: "Password too short", message: "Use at least 8 characters." })
       return;
     }
     setBusy(true);
@@ -42,12 +50,16 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
         throw new Error(Array.isArray(firstError) ? firstError[0] : 'Could not register');
       }
       await AsyncStorage.setItem('auth_token', data.token);
+      await SecureStore.setItemAsync('saved_username', username);
+      await SecureStore.setItemAsync('saved_password', password);
       if (data.invite_applied) {
-        Alert.alert('Welcome!', `Invite code applied — you're on the ${data.tier} plan.`);
+        setShowModal(true);
+        setModalData({ title: "Welcome!", message: `Invite code applied — you're on the ${data.tier} plan.` })
       }
       onRegistered();
     } catch (e) {
-      Alert.alert('Could not create account', e.message);
+      setShowModal(true);
+      setModalData({ title: "Could not create account", message: e.message })
     } finally {
       setBusy(false);
     }
@@ -66,9 +78,28 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
       <TextInput style={styles.input} placeholder="Phone (optional)"
         placeholderTextColor={theme.textMuted} keyboardType="phone-pad"
         value={phone} onChangeText={setPhone} />
-      <TextInput style={styles.input} placeholder="Password (min 8 characters)"
+      {/* <TextInput style={styles.input} placeholder="Password (min 8 characters)"
         placeholderTextColor={theme.textMuted} secureTextEntry
-        value={password} onChangeText={setPassword} />
+        value={password} onChangeText={setPassword} /> */}
+      <View style={styles.passwordWrapper}>
+        <TextInput
+          style={[styles.input, styles.passwordInput]}
+          placeholder="Password (min 8 characters)"
+          placeholderTextColor={theme.textMuted}
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <Pressable
+          onPress={() => setShowPassword(prev => !prev)}
+          style={styles.eyeButton}
+        >
+
+          {showPassword ? <EyeClosed size={20} color={theme.textMuted} /> : <Eye size={20} color={theme.textMuted} />}
+
+        </Pressable>
+      </View>
       <TextInput style={styles.input} placeholder="Family invite code (optional)"
         placeholderTextColor={theme.textMuted} autoCapitalize="characters"
         value={inviteCode} onChangeText={setInviteCode} />
@@ -83,6 +114,17 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
       <Pressable onPress={onGoToLogin} style={{ marginTop: 16 }}>
         <Text style={styles.link}>Already have an account? Sign in</Text>
       </Pressable>
+
+
+      <StatusModal
+        visible={showModal}
+        type='error'
+        title={modalData.title}
+        message={modalData.message}
+        primaryLabel="Retry"
+        onPrimary={() => setShowModal(false)}
+        onRequestClose={() => setShowModal(false)}
+      />
     </ScrollView>
   );
 }
@@ -106,4 +148,20 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   link: { color: theme.skyMuted, fontSize: 13, textAlign: 'center', textDecorationLine: 'underline' },
+  passwordWrapper: {
+    position: 'relative',
+  },
+
+  passwordInput: {
+    paddingRight: 45,
+  },
+
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    height: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
 });

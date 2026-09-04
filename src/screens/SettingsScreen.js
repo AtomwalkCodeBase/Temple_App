@@ -16,8 +16,9 @@ import {
 } from '../services/api';
 import { theme, radius } from '../screens/theme';
 import Screen from '../components/Screen';
+import ConfirmModal from '../components/ConfirmModal';
 
-const LANGUAGES = [
+export const LANGUAGES = [
   { code: 'en', label: 'English' },
 
   { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
@@ -52,6 +53,7 @@ export default function SettingsScreen({ onSignOut }) {
   const [calendars, setCalendars] = useState([]);
   const [locations, setLocations] = useState([]);
   const [saving, setSaving] = useState(null); // which field is mid-save
+  const [showSignOut, setShowSignOut] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -81,29 +83,27 @@ export default function SettingsScreen({ onSignOut }) {
   };
 
   const signOut = () => {
-    Alert.alert('Sign out?', 'You can sign back in anytime.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out', style: 'destructive', onPress: async () => {
-          const token = await AsyncStorage.getItem('auth_token');
-          try {
-            // Invalidate the token server-side (dj_rest_auth deletes the
-            // Token row on logout) — without this, a leaked token would
-            // stay valid indefinitely even after "signing out" locally.
-            await fetch(AUTH_LOGOUT_URL, {
-              method: 'POST',
-              headers: { Authorization: `Token ${token}` },
-            });
-          } catch (e) {
-            // Don't block sign-out on a network hiccup — the local token
-            // is cleared regardless, which is the more important half.
-            console.warn('Server-side logout failed:', e.message);
-          }
-          await AsyncStorage.removeItem('auth_token');
-          onSignOut();
+    setShowSignOut(true);
+  };
+
+  const handleSignOut = async () => {
+    const token = await AsyncStorage.getItem('auth_token');
+
+    try {
+      // Invalidate the token server-side.
+      await fetch(AUTH_LOGOUT_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Token ${token}`,
         },
-      },
-    ]);
+      });
+    } catch (e) {
+      // Don't block sign-out on a network hiccup.
+      console.warn('Server-side logout failed:', e.message);
+    }
+
+    await AsyncStorage.removeItem('auth_token');
+    onSignOut();
   };
 
   if (!profile) {
@@ -168,13 +168,27 @@ export default function SettingsScreen({ onSignOut }) {
           )}
         </Section>
 
-        <Pressable style={styles.signOutButton} onPress={signOut}>
+        {/* <Pressable style={styles.signOutButton} onPress={signOut}>
           <Ionicons name="log-out-outline" size={16} color="#993C1D" />
           <Text style={styles.signOutText}>  Sign out</Text>
-        </Pressable>
+        </Pressable> */}
 
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      <ConfirmModal
+        visible={showSignOut}
+        type="normal"
+        title="Sign out?"
+        message="Are you sure you want to sign out?"
+        confirmLabel="Sign out"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setShowSignOut(false);
+          handleSignOut();
+        }}
+        onCancel={() => setShowSignOut(false)}
+      />
     </Screen>
   );
 }

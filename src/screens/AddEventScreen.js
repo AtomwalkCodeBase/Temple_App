@@ -14,7 +14,7 @@ import { cancelEventReminders, scheduleEventReminders } from '../services/notifi
 import { theme, radius } from './theme';
 import Screen from '../components/Screen';
 
-const EVENT_TYPES = [
+export const EVENT_TYPES = [
   { key: 'PUJA', label: 'Puja' },
   { key: 'BRATA', label: 'Brata' },
   { key: 'FAMILY', label: 'Family' },
@@ -181,12 +181,12 @@ export default function AddEventScreen({ navigation, route, onSaved, onDeleted, 
           editable={!track}
         />
 
-
+        {/* 
         {editing && (
           <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: -2, marginBottom: 4 }}>
             Editing "{editing.title}"
           </Text>
-        )}
+        )} */}
 
         <Text style={styles.label}>Type</Text>
         <View style={styles.chipRow}>

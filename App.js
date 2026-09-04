@@ -7,6 +7,8 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { StatusBar } from 'expo-status-bar';
 import { registerPushToken } from './src/services/notifications';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PlayerProvider } from './src/context/PlayerContext';
 
 export default function App() {
   const [booting, setBooting] = useState(true);
@@ -58,9 +60,13 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <StatusBar style="translucent" translucent backgroundColor="transparent" />
-      <RootNavigator onSignOut={handleSignOut} />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <PlayerProvider>
+        <ThemeProvider>
+          <StatusBar style="auto" translucent backgroundColor="transparent" />
+          <RootNavigator onSignOut={handleSignOut} />
+        </ThemeProvider>
+      </PlayerProvider>
+    </SafeAreaProvider>
   );
 }
