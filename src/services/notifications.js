@@ -7,21 +7,39 @@
 //    participants and survives reinstall, via Expo's push service.
 // Both are wired up; the event creator gets both (belt and suspenders),
 // invited participants get push only once they've accepted.
+//
+// NOTE: expo-notifications throws on import in Expo Go (SDK 53+ removed
+// remote push support there), so the module is loaded conditionally and
+// every exported function short-circuits when running in Expo Go.
 
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from 'dayjs';
 import { Platform } from 'react-native';
 import { BASE_URL } from './api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false,
-  }),
-});
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+let Notifications = null;
+if (!isExpoGo) {
+  Notifications = require('expo-notifications');
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false,
+    }),
+  });
+
+  if (Platform.OS === 'android') {
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
+  }
+}
 
 export async function ensurePermission() {
+  if (isExpoGo) return false;
   const { status } = await Notifications.getPermissionsAsync();
   if (status === 'granted') return true;
   const req = await Notifications.requestPermissionsAsync();
@@ -33,6 +51,10 @@ export async function ensurePermission() {
  * update_or_create on the backend means repeats are harmless).
  */
 export async function registerPushToken() {
+  if (isExpoGo) {
+    console.log('Push token registration skipped (Expo Go)');
+    return null;
+  }
   if (!Device.isDevice) return null;   // push tokens don't work in simulators
   const ok = await ensurePermission();
   if (!ok) return null;
@@ -64,6 +86,7 @@ export async function registerPushToken() {
  *        Anchor = start_time if set, else 07:00 on event day.
  */
 export async function scheduleEventReminders(event, reminderMinutes) {
+  if (isExpoGo) return [];
   const ok = await ensurePermission();
   if (!ok) return [];
 
@@ -82,7 +105,11 @@ export async function scheduleEventReminders(event, reminderMinutes) {
           : `${event.title} — ${humanOffset(minutes)} from now`,
         data: { userEventId: event.id },
       },
-      trigger: fireAt.toDate(),
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: fireAt.toDate(),
+        channelId: 'default',
+      },
     });
     ids.push(id);
   }
@@ -92,6 +119,7 @@ export async function scheduleEventReminders(event, reminderMinutes) {
 }
 
 export async function cancelEventReminders(userEventId) {
+  if (isExpoGo) return;
   const raw = await AsyncStorage.getItem(`notif:${userEventId}`);
   if (!raw) return;
   for (const id of JSON.parse(raw)) {

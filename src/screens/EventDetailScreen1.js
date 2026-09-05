@@ -6,14 +6,13 @@ import {
   View, Text, Pressable, ScrollView, Alert, ActivityIndicator,
   StyleSheet, TextInput,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import {
   getReligiousEventOccurrence, trackReligiousEvent, untrackReligiousEvent,
-  getUserEvent, updateUserEvent, deleteUserEvent, addParticipant,
-  getDayPanchang,
+  getUserEvent, deleteUserEvent, addParticipant,
 } from '../services/api';
-import { scheduleEventReminders, cancelEventReminders } from '../services/notifications1';
+import { scheduleEventReminders, cancelEventReminders } from '../services/notifications';
 import { theme, radius } from './theme';
 import Screen from '../components/Screen';
 

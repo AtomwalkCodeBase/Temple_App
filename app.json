@@ -7,11 +7,6 @@
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./src/assets/logo-diya.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FCFAF6"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -42,7 +37,28 @@
           "color": "#7A263A"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/logo-diya.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#FCFAF6"
+        }
+      ],
+      "expo-status-bar",
+      "expo-web-browser",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ],
+      "expo-asset",
+      "@react-native-vector-icons/ionicons"
     ],
     "extra": {
       "eas": {

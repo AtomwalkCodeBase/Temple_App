@@ -10,11 +10,12 @@ import {
 } from 'react-native';
 import { theme, spacing, radius } from '../screens/theme';
 import ConfirmModal from '../components/ConfirmModal';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { getMyProfile, AUTH_LOGOUT_URL } from '../services/api';
 import { LANGUAGES } from './SettingsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Screen from '../components/Screen';
+import { useUser } from '../context/UserContext';
 
 // Simple row for settings-style list items
 function Row({ icon, label, value, onPress, danger }) {
@@ -34,29 +35,11 @@ function Row({ icon, label, value, onPress, danger }) {
     );
 }
 
-export default function ProfileScreen({
-    // user = { name: 'Devotee', username: '@devotee', avatar: null },
-    language = 'English',
-    panjiLocation = 'Not set',
-    stats = { events: 0, reminders: 0, streak: 0 },
-    onEditProfile,
-    onLanguage,
-    onPanjiLocation,
-    onPersonalEvents,
-    onReminders,
-    onNotifications,
-    onSignOut,
-}) {
+export default function ProfileScreen({ stats = { events: 0, reminders: 0, streak: 0 }, onSignOut, }) {
 
     const navigation = useNavigation()
-    const [profile, setProfile] = useState(null);
+    const { profile, refreshProfile } = useUser();
     const [showSignOut, setShowSignOut] = useState(false);
-
-    useFocusEffect(
-        useCallback(() => {
-            getMyProfile().then(setProfile).catch((e) => console.warn(e));
-        }, [])
-    );
 
     const handleSignOut = async () => {
         const token = await AsyncStorage.getItem('auth_token');

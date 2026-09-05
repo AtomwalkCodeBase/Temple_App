@@ -7,7 +7,7 @@ import {
   ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import { listUserEvents } from '../services/api';
 import { theme, radius } from '../screens/theme';

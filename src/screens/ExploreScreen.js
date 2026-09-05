@@ -1,12 +1,12 @@
 // ExploreScreen.js — devotees discover/create Communities and Groups
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, Pressable, Image, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { theme, spacing, radius } from './theme';
-import { getCommunities, getGroups } from '../services/api';
+// import { getCommunities, getGroups } from '../services/api';
 import GodsScreen from './GodsScreen';
 // expected shapes:
 // community: { id, name, description, cover, members_count, joined }

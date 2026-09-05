@@ -7,10 +7,10 @@ import {
   Switch, Alert, StyleSheet, Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import { createUserEvent, trackReligiousEvent, updateUserEvent } from '../services/api';
-import { cancelEventReminders, scheduleEventReminders } from '../services/notifications1';
+import { cancelEventReminders, scheduleEventReminders } from '../services/notifications';
 import { theme, radius } from './theme';
 import Screen from '../components/Screen';
 
@@ -213,7 +213,7 @@ export default function AddEventScreen({ navigation, route, onSaved, onDeleted, 
             value={date}
             mode="date"
             display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onChange={(_, d) => { setShowDatePicker(false); if (d) setDate(d); }}
+            onValueChange={(_, d) => { setShowDatePicker(false); if (d) setDate(d); }}
           />
         )}
 
@@ -231,7 +231,7 @@ export default function AddEventScreen({ navigation, route, onSaved, onDeleted, 
               <DateTimePicker
                 value={time}
                 mode="time"
-                onChange={(_, t) => { setShowTimePicker(false); if (t) setTime(t); }}
+                onValueChange={(_, t) => { setShowTimePicker(false); if (t) setTime(t); }}
               />
             )}
           </>

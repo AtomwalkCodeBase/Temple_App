@@ -1,24 +1,26 @@
 // MonthScreen.js — grid of the month with a micro moon per day, tapping a
 // date opens a bottom sheet with that day's tithi + festival + quick add.
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, Pressable, ScrollView, ActivityIndicator,
   StyleSheet, Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import MoonPhase from '../components/MoonPhase';
-import { getMonthGrid, getDayPanchang, listUserEvents, getTithiStrip, getMyProfile } from '../services/api';
+import { getDayPanchang, listUserEvents, getTithiStrip } from '../services/api';
 import { theme, radius } from '../screens/theme';
 import Screen from '../components/Screen';
 import { EVENT_TYPES } from './AddEventScreen';
+import { useUser } from '../context/UserContext';
 
-const LOCATION_ID = 1; // TODO: from Profile
 const CELL_SIZE = Math.floor((Dimensions.get('window').width - 32) / 7);
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function MonthScreen({ navigation, route }) {
   const focusDate = route?.params?.focusDate ? dayjs(route.params.focusDate) : dayjs();
+  const { profile } = useUser();
   const [cursor, setCursor] = useState(focusDate.startOf('month'));
   const [days, setDays] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,21 +29,13 @@ export default function MonthScreen({ navigation, route }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [myEventDates, setMyEventDates] = useState(new Set());
   const [myEvents, setMyEvents] = useState([]);
+  const loadedMonthKey = useRef(null);
 
-  const [locationName, setLocationName] = useState(null);
-  const [locationId, setLocationId] = useState(null);
-
-  useEffect(() => {
-    getMyProfile()
-      .then((profileData) => {
-        setLocationName(profileData?.location_name || null);
-        setLocationId(profileData?.preferred_location || null);
-      })
-      .catch(() => {
-        setLocationName(null);
-        setLocationId(null);
-      });
-  }, []);
+  const locationName = profile?.location_name || null;
+  const locationId = profile?.preferred_location || null;
+  const preferenceKey = profile
+    ? [profile.language, profile.preferred_calendar, profile.preferred_location].join('|')
+    : null;
 
   useEffect(() => {
     const refreshMyEvents = () => {
@@ -73,7 +67,9 @@ export default function MonthScreen({ navigation, route }) {
   //   }
   // }, []);
 
-  const loadMonth = useCallback(async (c) => {
+  const loadMonth = useCallback(async (c, force = false) => {
+    const monthKey = `${preferenceKey}|${c.format('YYYY-MM')}`;
+    if (!force && loadedMonthKey.current === monthKey) return;
     setLoading(true);
     setLoadError(null);
     try {
@@ -82,6 +78,7 @@ export default function MonthScreen({ navigation, route }) {
       const res = await getTithiStrip(start.format('YYYY-MM-DD'), locationId, daysInMonth);
       const list = res?.days ?? [];
       setDays(list);
+      loadedMonthKey.current = monthKey;
       if (!list.length) console.warn('getTithiStrip returned no days:', res);
     } catch (e) {
       console.warn('getTithiStrip failed:', e.message);
@@ -90,15 +87,17 @@ export default function MonthScreen({ navigation, route }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locationId, preferenceKey]);
 
-  useEffect(() => { loadMonth(cursor); }, [cursor, loadMonth]);
+  useEffect(() => {
+    if (profile) loadMonth(cursor);
+  }, [cursor, loadMonth, profile]);
 
   const openDay = async (dateStr) => {
     setSelectedDate(dateStr);
     setDetailLoading(true);
     try {
-      const detail = await getDayPanchang(dateStr, LOCATION_ID);
+      const detail = await getDayPanchang(dateStr, locationId);
       setSelectedDetail(detail);
     } catch (e) {
       console.warn(e);

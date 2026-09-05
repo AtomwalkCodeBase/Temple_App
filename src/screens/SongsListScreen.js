@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, Pressable, Image, StyleSheet, ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { theme, spacing, radius } from './theme';
 // import { getSongsByGod } from '../services/api'; // expected: [{ id, title, artist, duration, cover }]
 import { usePlayer } from '../context/PlayerContext'; // exposes { current, playing, play }

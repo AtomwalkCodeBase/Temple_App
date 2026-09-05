@@ -7,13 +7,13 @@ import {
   StyleSheet, TextInput, Share, FlatList,
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import {
   getReligiousEventOccurrence, trackReligiousEvent, untrackReligiousEvent,
-  getUserEvent, updateUserEvent, deleteUserEvent, addParticipant,
+  getUserEvent, deleteUserEvent, addParticipant,
 } from '../services/api';
-import { scheduleEventReminders, cancelEventReminders } from '../services/notifications1';
+import { scheduleEventReminders, cancelEventReminders } from '../services/notifications';
 import { theme, radius } from '../screens/theme';
 import Screen from '../components/Screen';
 

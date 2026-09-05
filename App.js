@@ -1,5 +1,5 @@
 // App.js
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SplashScreen from './src/screens/SplashScreen';
 import AuthNavigator from './src/navigation/AuthNavigator';
@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { registerPushToken } from './src/services/notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PlayerProvider } from './src/context/PlayerContext';
+import { UserProvider } from './src/context/UserContext';
 
 export default function App() {
   const [booting, setBooting] = useState(true);
@@ -63,8 +64,10 @@ export default function App() {
     <SafeAreaProvider>
       <PlayerProvider>
         <ThemeProvider>
-          <StatusBar style="auto" translucent backgroundColor="transparent" />
-          <RootNavigator onSignOut={handleSignOut} />
+          <UserProvider>
+            <StatusBar style="auto" translucent backgroundColor="transparent" />
+            <RootNavigator onSignOut={handleSignOut} />
+          </UserProvider>
         </ThemeProvider>
       </PlayerProvider>
     </SafeAreaProvider>

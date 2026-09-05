@@ -6,7 +6,7 @@ import {
   ActivityIndicator, Alert,
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { theme, spacing, radius } from './theme';
 import { createGroup, createCommunity, matchContactsToUsers } from '../services/api';
 // matchContactsToUsers(phoneNumbers) -> [{ phone, user_id, name, avatar }] for numbers on the app

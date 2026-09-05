@@ -9,14 +9,16 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import {
-  getMyProfile, updateMyProfile, getAvailableCalendars, getAvailableLocations,
+  getAvailableCalendars, getAvailableLocations,
   AUTH_LOGOUT_URL,
 } from '../services/api';
 import { theme, radius } from '../screens/theme';
 import Screen from '../components/Screen';
 import ConfirmModal from '../components/ConfirmModal';
+import { useUser } from '../context/UserContext';
+import { updateMyProfile } from '../services/api';
 
 export const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -49,18 +51,17 @@ export const LANGUAGES = [
 ];
 
 export default function SettingsScreen({ onSignOut }) {
-  const [profile, setProfile] = useState(null);
+  const { profile, refreshProfile } = useUser();
   const [calendars, setCalendars] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [saving, setSaving] = useState(null); // which field is mid-save
+  const [saving, setSaving] = useState(null);
   const [showSignOut, setShowSignOut] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [p, c, l] = await Promise.all([
-        getMyProfile(), getAvailableCalendars(), getAvailableLocations(),
+      const [c, l] = await Promise.all([
+        getAvailableCalendars(), getAvailableLocations(),
       ]);
-      setProfile(p);
       setCalendars(c.calendars);
       setLocations(l.locations);
     } catch (e) {
@@ -73,8 +74,8 @@ export default function SettingsScreen({ onSignOut }) {
   const save = async (field, value) => {
     setSaving(field);
     try {
-      const updated = await updateMyProfile({ [field]: value });
-      setProfile(updated);
+      await updateMyProfile({ [field]: value });
+      await refreshProfile();
     } catch (e) {
       Alert.alert('Could not save', e.message);
     } finally {

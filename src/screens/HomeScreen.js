@@ -1,64 +1,76 @@
 // HomeScreen.js — night-sky hero + tithi strip + festival banner + upcoming.
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, Pressable, RefreshControl,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import MoonPhase from '../components/MoonPhase';
 import TithiStrip from '../components/TithiStrip';
-import { getDayPanchang, getMyProfile, getTithiStrip, getUpcomingEvents } from '../services/api';
+import { getDayPanchang, getTithiStrip, getUpcomingEvents } from '../services/api';
 import { getGreeting } from '../services/i18n';
-import { theme, spacing, radius } from '../screens/theme';
+import { theme, radius } from '../screens/theme';
 import Screen from '../components/Screen';
-
-const LOCATION_ID = 1; // TODO: from user profile / settings
+import { useUser } from '../context/UserContext';
 
 export default function HomeScreen({ navigation }) {
+  const { profile } = useUser();
   const [day, setDay] = useState(null);
   const [strip, setStrip] = useState([]);
   const [upcoming, setUpcoming] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const loadedPreferenceKey = useRef(null);
+  const loadingPreferenceKey = useRef(null);
+  const preferenceKey = profile
+    ? [profile.language, profile.preferred_calendar, profile.preferred_location].join('|')
+    : null;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
+    if (!profile) return;
+    if (!force && loadedPreferenceKey.current === preferenceKey) return;
+    if (!force && loadingPreferenceKey.current === preferenceKey) return;
+    loadingPreferenceKey.current = preferenceKey;
     setError(null);
     const today = dayjs().format('YYYY-MM-DD');
     const stripStart = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
 
     try {
-      const profileData = await getMyProfile();
+      const locationId = profile.preferred_location;
 
-      // Only call other APIs after profile is successfully loaded
-      if (profileData) {
-        const locationId = profileData.preferred_location;
+      const [d, s, u] = await Promise.all([
+        getDayPanchang(today, locationId),
+        getTithiStrip(stripStart, locationId, 7),
+        getUpcomingEvents(30),
+      ]);
 
-        const [d, s, u] = await Promise.all([
-          getDayPanchang(today, locationId),
-          getTithiStrip(stripStart, locationId, 7),
-          getUpcomingEvents(30),
-        ]);
-
-        setDay({ ...d, location_name: profileData.location_name });
-
-        setStrip(s.days);
-        setUpcoming(u.events);
-      }
+      setDay({ ...d, location_name: profile.location_name });
+      setStrip(s.days);
+      setUpcoming(u.events);
+      loadedPreferenceKey.current = preferenceKey;
     } catch (e) {
       console.warn(e);
       setError(e.message || 'Could not load your panchang.');
+    } finally {
+      loadingPreferenceKey.current = null;
     }
-  }, []);
+  }, [profile, preferenceKey]);
 
-  useEffect(() => {
-    load().catch(console.warn).finally(() => setLoading(false));
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      if (profile && loadedPreferenceKey.current !== preferenceKey) {
+        setLoading(true);
+        load().catch(console.warn).finally(() => setLoading(false));
+      }
+    }, [profile, preferenceKey, load])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(console.warn);
+    await load(true).catch(console.warn);
     setRefreshing(false);
   };
 
@@ -89,6 +101,8 @@ export default function HomeScreen({ navigation }) {
 
   const todayFestival = day.religious_events?.[0];
   const daysToPurnima = day.days_to_purnima;
+  const currentMonth = dayjs(day.date).format('YYYY-MM');
+  const currentMonthUpcoming = upcoming.filter((ev) => ev.date?.startsWith(currentMonth));
 
   return (
     <Screen>
@@ -170,11 +184,11 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Coming up</Text>
 
         {/* Festivals */}
-        {upcoming.filter((ev) => ev.kind === 'religious').length > 0 && (
+        {currentMonthUpcoming.filter((ev) => ev.kind === 'religious').length > 0 && (
           <>
             <Text style={styles.subSectionTitle}>Festivals</Text>
 
-            {upcoming
+            {currentMonthUpcoming
               .filter((ev) => ev.kind === 'religious')
               .map((ev) => (
                 <Pressable
@@ -205,11 +219,11 @@ export default function HomeScreen({ navigation }) {
         )}
 
         {/* Personal Events */}
-        {upcoming.filter((ev) => ev.kind === 'user').length > 0 && (
+        {currentMonthUpcoming.filter((ev) => ev.kind === 'user').length > 0 && (
           <>
             <Text style={styles.subSectionTitle}>Personal Events</Text>
 
-            {upcoming
+            {currentMonthUpcoming
               .filter((ev) => ev.kind === 'user')
               .map((ev) => (
                 <Pressable
@@ -300,7 +314,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3, borderRadius: radius.sm,
   },
   festivalRow: { borderLeftColor: theme.sacred, backgroundColor: theme.sacredTint + '40', marginBottom: 8 },
-  personalRow: { borderLeftColor: theme.accent, backgroundColor: theme.accentTint + '40' },
+  personalRow: { borderLeftColor: theme.accent, backgroundColor: theme.accentTint + '40', marginBottom: 8 },
   kindBadge: {
     width: 24, height: 24, borderRadius: radius.pill,
     justifyContent: 'center', alignItems: 'center',

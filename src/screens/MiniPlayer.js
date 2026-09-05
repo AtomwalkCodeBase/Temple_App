@@ -2,7 +2,7 @@
 // Mount once in RootNavigator, inside NavigationContainer, as a sibling to <Tabs />.
 import React from 'react';
 import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { theme, spacing, radius } from '../screens/theme';
 import { usePlayer } from '../context/PlayerContext';
 
