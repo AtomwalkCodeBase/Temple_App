@@ -195,24 +195,39 @@ function UserEventDetail({ navigation, route }) {
     }
   };
 
+  // const shareInvite = async () => {
+  //   try {
+  //     const eventLink = `https://agam.app/event/user/${event.id}`;
+
+  //     await Share.share({
+  //       message:
+  //         `You're invited: ${event.title}\n` +
+  //         `${dayjs(event.event_date).format('dddd, D MMMM YYYY')}` +
+  //         (event.start_time
+  //           ? ` at ${dayjs(`2000-01-01 ${event.start_time}`).format('h:mm a')}`
+  //           : '') +
+  //         `\n\nShared from Agam Mandira` +
+  //         `\n\nOpen event: ${eventLink}`,
+  //     });
+  //   } catch (e) {
+  //     Alert.alert('Could not share', e.message);
+  //   }
+  // };
+
   const shareInvite = async () => {
     try {
-      const eventLink = `https://agam.app/event/user/${event.id}`;
-
       await Share.share({
         message:
           `You're invited: ${event.title}\n` +
           `${dayjs(event.event_date).format('dddd, D MMMM YYYY')}` +
-          (event.start_time
-            ? ` at ${dayjs(`2000-01-01 ${event.start_time}`).format('h:mm a')}`
-            : '') +
-          `\n\nShared from Agam Mandira` +
-          `\n\nOpen event: ${eventLink}`,
+          (event.start_time ? ` at ${dayjs(`2000-01-01 ${event.start_time}`).format('h:mm a')}` : '') +
+          `\n\nShared from Agam Mandira`,
       });
     } catch (e) {
       Alert.alert('Could not share', e.message);
     }
   };
+
 
   return (
     <Screen edges={['top', 'left', 'right']}>
