@@ -2,8 +2,8 @@
   "expo": {
     "name": "Agam Mandira",
     "slug": "agam-mandira",
-    "scheme": "com.yourorg.templedevotee",
-    "version": "1.0.0",
+    "scheme": "com.atomwalk.templedevotee",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "light",
@@ -26,7 +26,9 @@
         "backgroundColor": "#FCFAF6"
       },
       "permissions": [
-        "NOTIFICATIONS"
+        "NOTIFICATIONS",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
@@ -65,6 +67,12 @@
         "projectId": "d61668a0-8952-499f-a569-01b4d3b1d836"
       }
     },
-    "owner": "atomwalk"
+    "owner": "atomwalk",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d61668a0-8952-499f-a569-01b4d3b1d836"
+    }
   }
 }
