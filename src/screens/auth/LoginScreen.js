@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { AUTH_LOGIN_URL } from '../../services/api';
-import { theme, radius } from '../../screens/theme';
+import { theme, radius } from '../../theme/theme';
 import { getPreLoginGreeting } from '../../services/i18n';
 import StatusModal from '../../components/StatusModal';
 import { Eye, EyeClosed } from 'lucide-react-native';
@@ -55,10 +55,10 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister }) {
       });
       if (!res.ok) throw new Error('Invalid username or password');
       const data = await res.json();
-      
+
       await SecureStore.setItemAsync('saved_username', u);
       await SecureStore.setItemAsync('saved_password', p);
-      
+
       await AsyncStorage.setItem('auth_token', data.key);
       onLoggedIn();
     } catch (e) {

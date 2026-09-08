@@ -5,7 +5,7 @@
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // import { useTheme } from '../theme/ThemeContext';
-import { theme } from '../screens/theme';
+import { theme } from '../theme/theme';
 
 /**
  * edges: which sides to pad for safe area.

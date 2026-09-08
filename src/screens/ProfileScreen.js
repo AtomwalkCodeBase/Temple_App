@@ -8,10 +8,10 @@ import {
     Pressable,
     StyleSheet,
 } from 'react-native';
-import { theme, spacing, radius } from '../screens/theme';
+import { theme, spacing, radius } from '../theme/theme';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNavigation } from '@react-navigation/native';
-import { getMyProfile, AUTH_LOGOUT_URL } from '../services/api';
+import { AUTH_LOGOUT_URL } from '../services/api';
 import { LANGUAGES } from './SettingsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Screen from '../components/Screen';

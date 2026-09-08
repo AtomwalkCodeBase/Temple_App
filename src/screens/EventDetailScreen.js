@@ -6,7 +6,8 @@ import {
   View, Text, Pressable, ScrollView, Alert, ActivityIndicator,
   StyleSheet, TextInput, Share, FlatList,
 } from 'react-native';
-import * as Contacts from 'expo-contacts';
+// import * as ImagePicker from 'expo-image-picker';
+import * as Contacts from 'expo-contacts/legacy';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import {
@@ -14,14 +15,11 @@ import {
   getUserEvent, deleteUserEvent, addParticipant,
 } from '../services/api';
 import { scheduleEventReminders, cancelEventReminders } from '../services/notifications';
-import { theme, radius } from '../screens/theme';
+import { theme, radius, fontSize } from '../theme/theme';
 import Screen from '../components/Screen';
-
-const REMINDER_OPTIONS = [
-  { minutes: 0, label: 'On the day (morning)' },
-  { minutes: 1440, label: '1 day before' },
-  { minutes: 4320, label: '3 days before' },
-];
+import { ShareComposerModal } from '../components/ShareComposerModal';
+import { MESSAGE_STYLES, REMINDER_OPTIONS, SHARE_TEMPLATES } from '../constants/constant';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function EventDetailScreen({ navigation, route }) {
 
@@ -94,6 +92,45 @@ function FestivalDetail({ navigation, route }) {
     }
   };
 
+  function parseEventDescription(raw) {
+    if (!raw) return { celebration: [], requirements: [] };
+
+    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const raw_sections = { celebration: [], requirements: [] };
+    let current = 'celebration'; // content before any heading defaults to celebration
+
+    lines.forEach((line) => {
+      const heading = line.match(/^["^]?(celebrat\w*|requirement\w*)["^]?$/i);
+      if (heading) {
+        current = heading[1].toLowerCase().startsWith('celebrat') ? 'celebration' : 'requirements';
+        return;
+      }
+      const isBullet = line.startsWith('->');
+      raw_sections[current].push({ text: line.replace(/^->\s*/, ''), isBullet });
+    });
+
+    // Merge consecutive non-bullet lines into single paragraphs (source text
+    // wraps mid-sentence with \r\n); keep each bullet as its own item.
+    const group = (items) => {
+      const out = [];
+      let buffer = [];
+      items.forEach((item) => {
+        if (item.isBullet) {
+          if (buffer.length) { out.push({ text: buffer.join(' '), isBullet: false }); buffer = []; }
+          out.push(item);
+        } else {
+          buffer.push(item.text);
+        }
+      });
+      if (buffer.length) out.push({ text: buffer.join(' '), isBullet: false });
+      return out;
+    };
+
+    return { celebration: group(raw_sections.celebration), requirements: group(raw_sections.requirements) };
+  }
+
+  const { celebration, requirements } = data.description ? parseEventDescription(data.description) : { celebration: [], requirements: [] };
+
   return (
     <Screen edges={['top', 'left', 'right']}>
 
@@ -112,11 +149,33 @@ function FestivalDetail({ navigation, route }) {
         </View>
 
         <View style={{ padding: 16 }}>
-          {!!data.description &&
-            <>
+          {celebration.length > 0 && (
+            <View style={styles.infoCard}>
               <Text style={styles.descriptionHeading}>Why we celebrate</Text>
-              <Text style={styles.description}>{data.description}</Text>
-            </>}
+              {celebration.map((item, i) =>
+                item.isBullet ? (
+                  <View key={i} style={styles.bulletRow}>
+                    <View style={styles.bulletDot} />
+                    <Text style={styles.bulletText}>{item.text}</Text>
+                  </View>
+                ) : (
+                  <Text key={i} style={styles.description}>{item.text}</Text>
+                )
+              )}
+            </View>
+          )}
+
+          {requirements.length > 0 && (
+            <View style={styles.infoCard}>
+              <Text style={styles.descriptionHeading}>What you'll need</Text>
+              {requirements.map((item, i) => (
+                <View key={i} style={styles.bulletRow}>
+                  <Ionicons name="checkmark-circle-outline" size={15} color={theme.accent} />
+                  <Text style={[styles.bulletText, { marginLeft: 6 }]}>{item.text}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.card}>
             <View style={styles.rowBetween}>
@@ -161,8 +220,17 @@ function FestivalDetail({ navigation, route }) {
 // ---------------------------------------------------------------------
 function UserEventDetail({ navigation, route }) {
   const { userEventId } = route.params;
+  const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" })
+
   const [event, setEvent] = useState(null);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(SHARE_TEMPLATES[0]);
+  const [selectedMessageStyle, setSelectedMessageStyle] = useState(MESSAGE_STYLES[0]);
+
+  const [shareMessage, setShareMessage] = useState('');
+  const [customImage, setCustomImage] = useState(null);
+  const [sharing, setSharing] = useState(false);
 
   const load = useCallback(async () => {
     const d = await getUserEvent(userEventId);
@@ -174,14 +242,15 @@ function UserEventDetail({ navigation, route }) {
   if (!event) return <Loading />;
 
   const remove = () => {
-    Alert.alert('Delete event?', `"${event.title}" will be removed and reminders cancelled.`,
-      [{ text: 'Cancel', style: 'cancel' }, {
-        text: 'Delete', style: 'destructive', onPress: async () => {
-          await cancelEventReminders(event.id);
-          await deleteUserEvent(event.id);
-          navigation.goBack();
-        },
-      }]);
+    setModalDetails({ visible: true, title: "Delete event?", message: `"${event.title}" will be removed and reminders cancelled.` })
+    // Alert.alert('Delete event?', `"${event.title}" will be removed and reminders cancelled.`,
+    //   [{ text: 'Cancel', style: 'cancel' }, {
+    //     text: 'Delete', style: 'destructive', onPress: async () => {
+    //       await cancelEventReminders(event.id);
+    //       await deleteUserEvent(event.id);
+    //       navigation.goBack();
+    //     },
+    //   }]);
   };
 
   const onContactPicked = async (contact) => {
@@ -214,18 +283,73 @@ function UserEventDetail({ navigation, route }) {
   //   }
   // };
 
-  const shareInvite = async () => {
-    try {
-      await Share.share({
-        message:
-          `You're invited: ${event.title}\n` +
-          `${dayjs(event.event_date).format('dddd, D MMMM YYYY')}` +
-          (event.start_time ? ` at ${dayjs(`2000-01-01 ${event.start_time}`).format('h:mm a')}` : '') +
-          `\n\nShared from Agam Mandira`,
-      });
-    } catch (e) {
-      Alert.alert('Could not share', e.message);
-    }
+  // const shareInvite = async () => {
+  //   try {
+  //     await Share.share({
+  //       message:
+  //         `You're invited: ${event.title}\n` +
+  //         `${dayjs(event.event_date).format('dddd, D MMMM YYYY')}` +
+  //         (event.start_time ? ` at ${dayjs(`2000-01-01 ${event.start_time}`).format('h:mm a')}` : '') +
+  //         `\n\nShared from Agam Mandira`,
+  //     });
+  //   } catch (e) {
+  //     Alert.alert('Could not share', e.message);
+  //   }
+  // };
+
+  const shareInvite = () => {
+    // const defaultMessage = MESSAGE_STYLES[0].text(event);
+    const defaultMessage = getDefaultShareMessage(event);
+
+    setSelectedTemplate(SHARE_TEMPLATES[0]);
+    // setSelectedMessageStyle(MESSAGE_STYLES[0]);
+    setSelectedMessageStyle(null);
+    setCustomImage(null);
+    setShareMessage(defaultMessage);
+    setShareVisible(true);
+  };
+
+  const selectMessageStyle = (style) => {
+    setSelectedMessageStyle(style);
+    setShareMessage(style.text(event));
+  };
+
+  // const pickCustomImage = async () => {
+  //   try {
+  //     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  //     if (!permission.granted) {
+  //       Alert.alert(
+  //         'Permission needed',
+  //         'Please allow photo library access to choose an image.'
+  //       );
+  //       return;
+  //     }
+
+  //     const result = await ImagePicker.launchImageLibraryAsync({
+  //       mediaTypes: ['images'],
+  //       allowsEditing: true,
+  //       aspect: [4, 3],
+  //       quality: 0.9,
+  //     });
+
+  //     if (!result.canceled && result.assets?.length) {
+  //       setCustomImage(result.assets[0].uri);
+  //     }
+  //   } catch (e) {
+  //     Alert.alert('Could not select image', e.message);
+  //   }
+  // };
+
+  const getDefaultShareMessage = (event) => {
+    return (
+      `You're invited: ${event.title}\n` +
+      `${dayjs(event.event_date).format('dddd, D MMMM YYYY')}` +
+      (event.start_time
+        ? ` at ${dayjs(`2000-01-01 ${event.start_time}`).format('h:mm a')}`
+        : '') +
+      `\n\nShared from Agam Mandira`
+    );
   };
 
 
@@ -313,6 +437,39 @@ function UserEventDetail({ navigation, route }) {
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
         onPick={onContactPicked}
+      />
+
+      <ShareComposerModal
+        visible={shareVisible}
+        event={event}
+        defaultMessage={getDefaultShareMessage(event)}
+        selectedTemplate={selectedTemplate}
+        setSelectedTemplate={setSelectedTemplate}
+        selectedMessageStyle={selectedMessageStyle}
+        selectMessageStyle={selectMessageStyle}
+        shareMessage={shareMessage}
+        setShareMessage={setShareMessage}
+        customImage={customImage}
+        // pickCustomImage={pickCustomImage}
+        sharing={sharing}
+        setSharing={setSharing}
+        onClose={() => setShareVisible(false)}
+      />
+
+      <ConfirmModal
+        visible={modalDetails.visible}
+        type='error'
+        title={modalDetails.title}
+        message={modalDetails.message}
+        confirmLabel='DELETE'
+        cancelLabel='CANCEL'
+        onConfirm={async () => {
+          await cancelEventReminders(event.id);
+          await deleteUserEvent(event.id);
+          navigation.goBack();
+        }}
+        onCancel={() => setModalDetails({ visible: false, title: "", message: "" })}
+        onRequestClose={() => setModalDetails({ visible: false, title: "", message: "" })}
       />
     </Screen>
   );
@@ -409,7 +566,7 @@ const styles = StyleSheet.create({
   importanceBadge: { backgroundColor: theme.sacredTint, borderRadius: 10, alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 9, paddingVertical: 3 },
   importanceBadgeText: { color: theme.sacredText, fontSize: 11, fontWeight: '600' },
   descriptionHeading: { color: theme.text, fontSize: 21, fontWeight: '700', marginTop: 2 },
-  description: { fontSize: 13, color: theme.textMuted, lineHeight: 20 },
+  description: { fontSize: fontSize.md, color: theme.text, lineHeight: 22 },
   card: { backgroundColor: theme.surfaceAlt, borderRadius: radius.m, padding: 14, marginTop: 10 },
   cardTitle: { fontSize: 14, fontWeight: '600', color: theme.text, marginBottom: 4 },
   cardSub: { fontSize: 12, color: theme.textMuted },
@@ -465,4 +622,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.border,
   },
   emptyContacts: { fontSize: 13, color: theme.textMuted, textAlign: 'center', paddingVertical: 24 },
+  infoCard: { marginBottom: 16 },
+  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 6, gap: 6 },
+  bulletDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.sacred, marginTop: 7 },
+  bulletText: { flex: 1, fontSize: 14, color: theme.text, lineHeight: 20 },
 });

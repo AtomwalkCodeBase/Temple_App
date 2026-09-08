@@ -8,7 +8,7 @@
 
 import React from 'react';
 import Svg, { Circle } from 'react-native-svg';
-import { theme } from '../screens/theme';
+import { theme } from '../theme/theme';
 
 export default function MoonPhase({
   tithiNumber,          // 1..15

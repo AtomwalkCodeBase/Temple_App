@@ -11,24 +11,12 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import { createUserEvent, trackReligiousEvent, updateUserEvent } from '../services/api';
 import { cancelEventReminders, scheduleEventReminders } from '../services/notifications';
-import { theme, radius } from './theme';
+import { theme, radius, spacing } from '../theme/theme';
 import Screen from '../components/Screen';
+import { EVENT_TYPES, REMINDER_OPTIONS } from '../constants/constant';
+import StatusModal from '../components/StatusModal';
 
-export const EVENT_TYPES = [
-  { key: 'PUJA', label: 'Puja' },
-  { key: 'BRATA', label: 'Brata' },
-  { key: 'FAMILY', label: 'Family' },
-  { key: 'TEMPLE_VISIT', label: 'Temple visit' },
-  { key: 'OTHER', label: 'Other' },
-];
-
-const REMINDER_OPTIONS = [
-  { minutes: 0, label: 'On the day (morning)' },
-  { minutes: 1440, label: '1 day before' },
-  { minutes: 4320, label: '3 days before' },
-];
-
-export default function AddEventScreen({ navigation, route, onSaved, onDeleted, onCancel }) {
+export default function AddEventScreen({ navigation, route, onSaved, }) {
   const params = route?.params ?? {};
   const editing = params.editUserEvent ?? null;
   const track = params.trackCode
@@ -57,6 +45,7 @@ export default function AddEventScreen({ navigation, route, onSaved, onDeleted, 
     editing?.reminders?.length ? editing.reminders.map((r) => r.reminder_minutes ?? r) : [1440]
   );
   const [saving, setSaving] = useState(false);
+  const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" })
 
   useEffect(() => {
     const nextEditing = route?.params?.editUserEvent ?? null;
@@ -99,9 +88,28 @@ export default function AddEventScreen({ navigation, route, onSaved, onDeleted, 
     setReminders((r) =>
       r.includes(minutes) ? r.filter((m) => m !== minutes) : [...r, minutes]);
 
+  const resetForm = () => {
+    setTitle('');
+    setEventType('PUJA');
+    setDate(new Date());
+    setShowDatePicker(false);
+    setHasTime(false);
+    setTime(new Date(new Date().setHours(7, 0, 0, 0)));
+    setShowTimePicker(false);
+    setYearly(true);
+    setDescription('');
+    setReminders([1440]);
+    navigation?.setParams?.({
+      editUserEvent: null,
+      trackCode: null,
+      trackName: null,
+      trackDate: null,
+    });
+  };
+
   const save = async () => {
     if (!title.trim()) {
-      Alert.alert('Missing name', 'Please give the event a name.');
+      setModalDetails({ visible: true, title: 'Missing name', message: 'Please give the event a name.' })
       return;
     }
     setSaving(true);
@@ -145,6 +153,8 @@ export default function AddEventScreen({ navigation, route, onSaved, onDeleted, 
         },
         reminders,
       );
+
+      resetForm();
 
       if (typeof onSaved === 'function') {
         onSaved();
@@ -277,6 +287,16 @@ export default function AddEventScreen({ navigation, route, onSaved, onDeleted, 
           <Text style={styles.saveText}>{saving ? 'Saving…' : editing ? 'Update event' : 'Save event'}</Text>
         </Pressable>
       </ScrollView>
+
+      <StatusModal
+        visible={modalDetails.visible}
+        type='error'
+        title={modalDetails.title}
+        message={modalDetails.message}
+        onPrimary={() => setModalDetails({ visible: false, title: "", message: "" })}
+        onRequestClose={() => setModalDetails({ visible: false, title: "", message: "" })}
+        duration={4000}
+      />
     </Screen>
   );
 }
@@ -316,7 +336,7 @@ const styles = StyleSheet.create({
   chipTextActive: { color: theme.accentDeep, fontWeight: '600' },
   switchRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginTop: 14,
+    alignItems: 'center', marginTop: spacing.xs,
   },
   switchLabel: { fontSize: 15, color: theme.text },
   reminderRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7 },

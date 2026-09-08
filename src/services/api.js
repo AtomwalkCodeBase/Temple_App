@@ -76,8 +76,8 @@ export const getAvailableLocations = () => request('/locations/available/');
 
 // ---- Events ------------------------------------------------------------
 // GET /events/upcoming/?days=30
-export const getUpcomingEvents = (days = 30) =>
-  request(`/events/upcoming/?days=${days}`);
+export const getUpcomingEvents = (days = 30) => request(`/events/upcoming/?days=${days}`);
+export const getMonthsEvents = (month) => request(`/events/month/${month}/`);
 
 // POST /user-events/
 // payload: { title, event_type, event_date, start_time?, recurrence_type,

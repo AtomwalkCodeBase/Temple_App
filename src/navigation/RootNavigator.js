@@ -3,7 +3,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { theme } from '../screens/theme';
 import AddEventScreen from '../screens/AddEventScreen';
 import HomeScreen from '../screens/HomeScreen';
 import MonthScreen from '../screens/MonthScreen';
@@ -11,11 +10,12 @@ import EventDetailScreen from '../screens/EventDetailScreen';
 import MyEventsScreen from '../screens/MyEventsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import ExploreScreen from '../screens/ExploreScreen';
-import CreateGroupScreen from '../screens/CreateGroupScreen';
-import GodsScreen from '../screens/GodsScreen';
-import SongsListScreen from '../screens/SongsListScreen';
-import MiniPlayer from '../screens/MiniPlayer';
+import { theme } from '../theme/theme';
+// import ExploreScreen from '../screens/ExploreScreen';
+// import CreateGroupScreen from '../screens/CreateGroupScreen';
+// import GodsScreen from '../screens/GodsScreen';
+// import SongsListScreen from '../screens/SongsListScreen';
+// import MiniPlayer from '../screens/MiniPlayer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -26,6 +26,7 @@ function HomeStack() {
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="AddEvent" component={AddEventScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Stack.Navigator>
   );
 }
@@ -55,12 +56,12 @@ function ProfileStack({ onSignOut }) {
       <Stack.Screen name="ProfileScreen">
         {() => <ProfileScreen onSignOut={onSignOut} />}
       </Stack.Screen>
-      <Stack.Screen name="Explore" component={ExploreScreen} />
-      <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
-      <Stack.Screen name="GodsScreen" component={GodsScreen} />
-      <Stack.Screen name="SongsList" component={SongsListScreen} />
-      <Stack.Screen name="CommunityDetail" component={ExploreScreen} />
-      <Stack.Screen name="GroupDetail" component={ExploreScreen} />
+      {/* <Stack.Screen name="Explore" component={ExploreScreen} /> */}
+      {/* <Stack.Screen name="CreateGroup" component={CreateGroupScreen} /> */}
+      {/* <Stack.Screen name="GodsScreen" component={GodsScreen} /> */}
+      {/* <Stack.Screen name="SongsList" component={SongsListScreen} /> */}
+      {/* <Stack.Screen name="CommunityDetail" component={ExploreScreen} /> */}
+      {/* <Stack.Screen name="GroupDetail" component={ExploreScreen} /> */}
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Stack.Navigator>
   );
@@ -87,7 +88,14 @@ function Tabs({ onSignOut }) {
         headerShown: false,
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.textMuted,
-        tabBarStyle: { backgroundColor: theme.surface, borderTopColor: theme.border },
+        tabBarStyle: {
+          backgroundColor: theme.surface,
+          elevation: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '500',
+        },
         tabBarIcon: ({ color, size }) => (
           <Ionicons name={ICONS[route.name]} size={size} color={color} />
         ),
@@ -148,7 +156,7 @@ export default function RootNavigator({ onSignOut }) {
     <NavigationContainer>
       <>
         <Tabs onSignOut={onSignOut} />
-        <MiniPlayer />
+        {/* <MiniPlayer /> */}
       </>
     </NavigationContainer>
   );

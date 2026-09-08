@@ -41,5 +41,5 @@ export const theme = {
 
 export const spacing = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32 };
 export const radius = { sm: 8, md: 12, lg: 16, pill: 999, s: 8, m: 12, l: 16 };
-
-export default { theme, spacing, radius };
+export const fontSize = { xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 18, xxl: 22, display: 30, };
+export default { theme, spacing, radius, fontSize };

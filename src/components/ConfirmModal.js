@@ -1,5 +1,5 @@
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
-import { theme, spacing, radius } from '../screens/theme';
+import { theme, spacing, radius } from '../theme/theme';
 
 const VARIANTS = {
     normal: {

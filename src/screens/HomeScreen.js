@@ -11,7 +11,7 @@ import MoonPhase from '../components/MoonPhase';
 import TithiStrip from '../components/TithiStrip';
 import { getDayPanchang, getTithiStrip, getUpcomingEvents } from '../services/api';
 import { getGreeting } from '../services/i18n';
-import { theme, radius } from '../screens/theme';
+import { theme, radius } from '../theme/theme';
 import Screen from '../components/Screen';
 import { useUser } from '../context/UserContext';
 
@@ -132,7 +132,7 @@ export default function HomeScreen({ navigation }) {
               size={110}
               withStars
             />
-            <Text style={styles.pakshaLine}>{day.lunar_month_local} {day.paksha_local} ପକ୍ଷ</Text>
+            <Text style={styles.pakshaLine}>{day.lunar_month_local} {day.paksha || day.paksha_local} paksha</Text>
             <Text style={styles.tithiBig}>{day.tithi_local}</Text>
             <Text style={styles.tithiSub}>
               {day.tithi}{day.tithi_end_display ? ` · until ${day.tithi_end_display}` : ''} · {day.nakshatra}

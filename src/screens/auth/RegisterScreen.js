@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { REGISTER_URL } from '../../services/api';
-import { theme, radius } from '../../screens/theme';
+import { theme, radius } from '../../theme/theme';
 import { getPreLoginGreeting } from '../../services/i18n';
 import StatusModal from '../../components/StatusModal';
 import { Eye, EyeClosed } from 'lucide-react-native';

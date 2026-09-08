@@ -4,11 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import SplashScreen from './src/screens/SplashScreen';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import RootNavigator from './src/navigation/RootNavigator';
-import { ThemeProvider } from './src/theme/ThemeContext';
 import { StatusBar } from 'expo-status-bar';
 import { registerPushToken } from './src/services/notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { PlayerProvider } from './src/context/PlayerContext';
+// import { PlayerProvider } from './src/context/PlayerContext';
 import { UserProvider } from './src/context/UserContext';
 
 export default function App() {
@@ -44,32 +43,36 @@ export default function App() {
 
   if (showSplash || booting) {
     return (
-      <ThemeProvider>
+      // <ThemeProvider>
+      <>
         <StatusBar style="translucent" translucent backgroundColor="transparent" />
         <SplashScreen onFinished={() => setShowSplash(false)} />
-      </ThemeProvider>
+      </>
+      // </ThemeProvider>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <ThemeProvider>
+      // <ThemeProvider>
+      <>
         <StatusBar style="light" translucent backgroundColor="transparent" />
         <AuthNavigator onAuthenticated={handleAuthenticated} />
-      </ThemeProvider>
+      </>
+      // </ThemeProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <PlayerProvider>
-        <ThemeProvider>
-          <UserProvider>
-            <StatusBar style="auto" translucent backgroundColor="transparent" />
-            <RootNavigator onSignOut={handleSignOut} />
-          </UserProvider>
-        </ThemeProvider>
-      </PlayerProvider>
+      {/* <PlayerProvider> */}
+      {/* <ThemeProvider> */}
+      <UserProvider>
+        <StatusBar style="auto" translucent backgroundColor="transparent" />
+        <RootNavigator onSignOut={handleSignOut} />
+      </UserProvider>
+      {/* </ThemeProvider> */}
+      {/* </PlayerProvider> */}
     </SafeAreaProvider>
   );
 }

@@ -10,7 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import { listUserEvents } from '../services/api';
-import { theme, radius } from '../screens/theme';
+import { theme, radius } from '../theme/theme';
 import Screen from '../components/Screen';
 
 const TYPE_LABEL = {

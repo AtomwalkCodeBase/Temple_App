@@ -1,12 +1,11 @@
 // src/screens/SplashScreen.js
 import React, { useEffect } from 'react';
 import { StyleSheet, Image } from 'react-native';
-import { useTheme } from '../theme/ThemeContext';
 import AppText from '../components/AppText';
 import Screen from '../components/Screen';
+import theme, { spacing } from '../theme/theme';
 
 export default function SplashScreen({ onFinished }) {
-  const theme = useTheme();
 
   useEffect(() => {
     const timer = setTimeout(() => onFinished?.(), 1400);
@@ -21,17 +20,17 @@ export default function SplashScreen({ onFinished }) {
         resizeMode="contain"
         accessibilityLabel="App logo"
       />
-      <AppText variant="h2" style={{ marginTop: theme.spacing.lg }}>
+      <AppText variant="h2" style={{ marginTop: spacing.lg }}>
         Temple Devotee
       </AppText>
-      <AppText variant="bodySmall" color="textSecondary" style={{ marginTop: theme.spacing.xs }}>
+      <AppText variant="bodySmall" color="textSecondary" style={{ marginTop: spacing.xs }}>
         Your spiritual calendar
       </AppText>
     </Screen>
   );
 }
 
-const styles = (theme) =>
+const styles = () =>
   StyleSheet.create({
     container: {
       alignItems: 'center',

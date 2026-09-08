@@ -4,7 +4,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import MoonPhase from './MoonPhase';
-import { theme } from '../screens/theme';
+import { theme } from '../theme/theme';
 
 export default function TithiStrip({ days, onSelectDay }) {
   // days: [{ date, label, tithi_number, paksha, is_today, has_festival }]

@@ -14,7 +14,7 @@ import {
   getAvailableCalendars, getAvailableLocations,
   AUTH_LOGOUT_URL,
 } from '../services/api';
-import { theme, radius } from '../screens/theme';
+import { theme, radius } from '../theme/theme';
 import Screen from '../components/Screen';
 import ConfirmModal from '../components/ConfirmModal';
 import { useUser } from '../context/UserContext';
