@@ -13,10 +13,10 @@ export default function SplashScreen({ onFinished }) {
   }, [onFinished]);
 
   return (
-    <Screen edges={['top', 'bottom', 'left', 'right']} style={styles(theme).container}>
+    <Screen edges={['top', 'bottom', 'left', 'right']} style={styles.container}>
       <Image
         source={require('../assets/logo-diya.png')}
-        style={styles(theme).logo}
+        style={styles.logo}
         resizeMode="contain"
         accessibilityLabel="App logo"
       />
@@ -30,14 +30,13 @@ export default function SplashScreen({ onFinished }) {
   );
 }
 
-const styles = () =>
-  StyleSheet.create({
-    container: {
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    logo: {
-      width: 96,
-      height: 96,
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 96,
+    height: 96,
+  },
+});

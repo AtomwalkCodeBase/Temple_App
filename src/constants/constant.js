@@ -18,17 +18,17 @@ export const SHARE_TEMPLATES = [
     {
         id: 'classic',
         name: 'Classic',
-        image: require('../assets/share/invitation_1.png'),
+        // image: require('../assets/share/invitation_1.png'),
     },
     {
         id: 'festive',
         name: 'Festive',
-        image: require('../assets/share/invitation_2.png'),
+        // image: require('../assets/share/invitation_2.png'),
     },
     {
         id: 'traditional',
         name: 'Traditional',
-        image: require('../assets/share/invitation_3.png'),
+        // image: require('../assets/share/invitation_3.png'),
     },
 ];
 

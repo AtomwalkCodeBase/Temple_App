@@ -1,26 +1,13 @@
-// api.js — thin client for the Panji backend
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const ROOT_URL = 'https://agamandira.com';      // Android emulator -> localhost
-// Physical device: change ROOT_URL to your machine's LAN IP,
-// e.g. http://192.168.1.10:8000 — every URL below derives from it.
-
-// event/urls.py is mounted at root as `event/` — NOT under /api/
+export const ROOT_URL = 'https://agamandira.com';
 export const BASE_URL = `${ROOT_URL}/event`;
 export const ADMIN_API_URL = `${BASE_URL}/admin_api`;
 
-// dj_rest_auth, mounted at root in project urls.py
 export const AUTH_LOGIN_URL = `${ROOT_URL}/auth/login/`;
-// dj_rest_auth's LoginView returns {"key": "..."} — NOT {"token": "..."}
 
-// Your custom register view (applies invite codes / Gold tier) —
-// lives inside event.urls, so it's under BASE_URL, not root.
 export const REGISTER_URL = `${BASE_URL}/auth/register/`;
-// NOTE: dj_rest_auth.registration.urls is also mounted at root
-// (`auth/registration/`) in your project urls.py. Two registration paths
-// exist right now — recommend removing that line from project/urls.py
-// since it doesn't know about InviteCode/tier and will silently create
-// TRIAL-only accounts if anyone hits it by mistake.
+
 
 async function request(path, { method = 'GET', body } = {}) {
   const token = await AsyncStorage.getItem('auth_token');

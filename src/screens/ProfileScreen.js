@@ -38,23 +38,10 @@ function Row({ icon, label, value, onPress, danger }) {
 export default function ProfileScreen({ stats = { events: 0, reminders: 0, streak: 0 }, onSignOut, }) {
 
     const navigation = useNavigation()
-    const { profile, refreshProfile } = useUser();
+    const { profile } = useUser();
     const [showSignOut, setShowSignOut] = useState(false);
 
     const handleSignOut = async () => {
-        const token = await AsyncStorage.getItem('auth_token');
-
-        try {
-            await fetch(AUTH_LOGOUT_URL, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Token ${token}`,
-                },
-            });
-        } catch (e) {
-            console.warn('Server-side logout failed:', e.message);
-        }
-
         await AsyncStorage.removeItem('auth_token');
         onSignOut?.();
     };

@@ -45,7 +45,7 @@ export default function App() {
     return (
       // <ThemeProvider>
       <>
-        <StatusBar style="translucent" translucent backgroundColor="transparent" />
+        <StatusBar style="light" translucent backgroundColor="transparent" />
         <SplashScreen onFinished={() => setShowSplash(false)} />
       </>
       // </ThemeProvider>
