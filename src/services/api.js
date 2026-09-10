@@ -56,8 +56,8 @@ export const listUserEvents = () => request('/user-events/');
 
 // ---- Profile / Settings ----
 export const getMyProfile = () => request('/profile/me/');
-export const updateMyProfile = (payload) =>
-  request('/profile/me/', { method: 'PATCH', body: payload });
+export const updateMyProfile = (payload) => request('/profile/me/', { method: 'PATCH', body: payload });
+
 export const getAvailableCalendars = () => request('/calendars/available/');
 export const getAvailableLocations = () => request('/locations/available/');
 
@@ -69,16 +69,20 @@ export const getMonthsEvents = (month) => request(`/events/month/${month}/`);
 // POST /user-events/
 // payload: { title, event_type, event_date, start_time?, recurrence_type,
 //            description?, reminders: [{reminder_minutes}], participants: [] }
-export const createUserEvent = (payload) =>
-  request('/user-events/', { method: 'POST', body: payload });
-
-export const updateUserEvent = (id, payload) =>
-  request(`/user-events/${id}/`, { method: 'PATCH', body: payload });
-
-export const deleteUserEvent = (id) =>
-  request(`/user-events/${id}/`, { method: 'DELETE' });
+export const createUserEvent = (payload) => request('/user-events/', { method: 'POST', body: payload });
+export const updateUserEvent = (id, payload) => request(`/user-events/${id}/`, { method: 'PATCH', body: payload });
+export const deleteUserEvent = (id) => request(`/user-events/${id}/`, { method: 'DELETE' });
 
 // POST /religious-events/<code>/track/  -> "Add to My Calendar"
 // payload: { reminder_minutes: [1440] }
-export const trackReligiousEvent = (code, payload = {}) =>
-  request(`/religious-events/${code}/track/`, { method: 'POST', body: payload });
+export const trackReligiousEvent = (code, payload = {}) => request(`/religious-events/${code}/track/`, { method: 'POST', body: payload });
+
+// POST /religious-events/track-by-type/ -> bulk-subscribe, e.g. all Ekadashi in a year
+export const trackByEventType = (eventType, year, reminderMinutes) =>
+  request('/religious-events/track-by-type/', {
+    method: 'POST',
+    body: { event_type: eventType, year, reminder_minutes: reminderMinutes },
+  });
+
+// POST /user-events/weekday-series/ -> e.g. "next 5 Mondays"
+export const createWeekdaySeries = (payload) => request('/user-events/weekday-series/', { method: 'POST', body: payload });

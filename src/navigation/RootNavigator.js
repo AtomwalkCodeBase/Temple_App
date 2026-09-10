@@ -11,6 +11,7 @@ import MyEventsScreen from '../screens/MyEventsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { theme } from '../theme/theme';
+import BulkRemindersScreen from '../screens/BulkRemindersScreen';
 // import ExploreScreen from '../screens/ExploreScreen';
 // import CreateGroupScreen from '../screens/CreateGroupScreen';
 // import GodsScreen from '../screens/GodsScreen';
@@ -37,6 +38,7 @@ function MyEventsStack() {
       <Stack.Screen name="MyEventsScreen" component={MyEventsScreen} />
       <Stack.Screen name="AddEvent" component={AddEventScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+      <Stack.Screen name="BulkReminders" component={BulkRemindersScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -62,6 +64,7 @@ function ProfileStack({ onSignOut }) {
       {/* <Stack.Screen name="SongsList" component={SongsListScreen} /> */}
       {/* <Stack.Screen name="CommunityDetail" component={ExploreScreen} /> */}
       {/* <Stack.Screen name="GroupDetail" component={ExploreScreen} /> */}
+      <Stack.Screen name="BulkReminders" component={BulkRemindersScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Stack.Navigator>
   );

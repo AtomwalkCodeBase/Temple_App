@@ -11,7 +11,6 @@ import {
 import { theme, spacing, radius } from '../theme/theme';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNavigation } from '@react-navigation/native';
-import { AUTH_LOGOUT_URL } from '../services/api';
 import { LANGUAGES } from './SettingsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Screen from '../components/Screen';
@@ -134,24 +133,19 @@ export default function ProfileScreen({ stats = { events: 0, reminders: 0, strea
                 </View> */}
 
                 {/* My devotional activity */}
-                {/* <Text style={styles.sectionTitle}>My Activity</Text>
+                <Text style={styles.sectionTitle}>My Activity</Text>
                 <View style={styles.card}>
-                    <Row icon="🗓️" label="Personal Events" onPress={() => navigation.navigate('MyEventsScreen')} /> */}
-                {/* <View style={styles.divider} />
-                    <Row icon="🔔" label="Reminders" onPress={onReminders} />
+                    <Row icon="🗓️" label="Personal Events" onPress={() => navigation.navigate('MyEventsScreen')} />
                     <View style={styles.divider} />
-                    <Row icon="🔕" label="Notification Settings" onPress={onNotifications} />
+                    <Row icon="🔔" label="Set Reminders" onPress={() => navigation.navigate('BulkReminders')} />
+                    <View style={styles.divider} />
+                    {/* <Row icon="🔕" label="Notification Settings" onPress={onNotifications} />
                     <View style={styles.divider} /> */}
-                {/* </View> */}
+                </View>
 
                 {/* Sign out */}
                 <View style={styles.card}>
-                    <Row
-                        icon="🚪"
-                        label="Sign Out"
-                        danger
-                        onPress={() => setShowSignOut(true)}
-                    />
+                    <Row icon="🚪" label="Sign Out" danger onPress={() => setShowSignOut(true)} />
                 </View>
 
                 <Text style={styles.footerNote}>Agam Mandira · Your daily devotional companion</Text>

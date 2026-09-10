@@ -11,7 +11,7 @@ import MoonPhase from '../components/MoonPhase';
 import TithiStrip from '../components/TithiStrip';
 import { getDayPanchang, getTithiStrip, getUpcomingEvents } from '../services/api';
 import { getGreeting } from '../services/i18n';
-import { theme, radius } from '../theme/theme';
+import { theme, radius, fontSize } from '../theme/theme';
 import Screen from '../components/Screen';
 import { useUser } from '../context/UserContext';
 
@@ -132,21 +132,25 @@ export default function HomeScreen({ navigation }) {
               size={110}
               withStars
             />
-            <Text style={styles.pakshaLine}>{day.lunar_month_local} {day.paksha || day.paksha_local} paksha</Text>
-            <Text style={styles.tithiBig}>{day.tithi_local}</Text>
+            <Text style={styles.pakshaLine}>
+              {day.lunar_month_local}{day.lunar_month && day.lunar_month !== day.lunar_month_local ? ` (${day.lunar_month})` : ''}
+              {'  ·  '}
+              {day.paksha} paksha
+            </Text>
+            <Text style={styles.tithiBig}>{day.tithi_local}({day.tithi})</Text>
             <Text style={styles.tithiSub}>
               {day.tithi}{day.tithi_end_display ? ` · until ${day.tithi_end_display}` : ''} · {day.nakshatra}
             </Text>
             <Text style={styles.metaLine}>
               {day.sunrise && (
                 <>
-                  <Ionicons name="sunny-outline" size={12} color={theme.skyLine} /> {day.sunrise}
+                  <Ionicons name="sunny-outline" size={14} color={theme.skyLine} /> {day.sunrise}
                   {'   '}
                 </>
               )}
               {day.sunset && (
                 <>
-                  <Ionicons name="moon-outline" size={12} color={theme.skyLine} /> {day.sunset}
+                  <Ionicons name="moon-outline" size={14} color={theme.skyLine} /> {day.sunset}
                 </>
               )}
               {daysToPurnima != null &&
@@ -276,10 +280,10 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingHorizontal: 9, paddingVertical: 3,
   },
   locationText: { color: theme.star, fontSize: 11 },
-  pakshaLine: { color: theme.skyMuted, fontSize: 12, marginTop: 6 },
+  pakshaLine: { color: theme.skyMuted, fontSize: 12, marginTop: 6, textAlign: 'center', lineHeight: 16 },
   tithiBig: { color: theme.skyText, fontSize: 30, fontWeight: '600', marginTop: 1 },
   tithiSub: { color: theme.skyMuted, fontSize: 12, marginTop: 2 },
-  metaLine: { color: theme.skyLine, fontSize: 11, marginTop: 9 },
+  metaLine: { color: theme.skyLine, fontSize: fontSize.sm, marginTop: 9 },
   festivalBanner: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: theme.sacredTint, borderRadius: radius.m,

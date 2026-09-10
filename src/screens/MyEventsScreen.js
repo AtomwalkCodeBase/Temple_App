@@ -6,7 +6,7 @@ import {
   View, Text, FlatList, Pressable, RefreshControl,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import { listUserEvents } from '../services/api';
@@ -18,7 +18,8 @@ const TYPE_LABEL = {
   TEMPLE_VISIT: 'Temple visit', OTHER: 'Other',
 };
 
-export default function MyEventsScreen({ navigation }) {
+export default function MyEventsScreen() {
+  const navigation = useNavigation();
   const [events, setEvents] = useState(null);   // null = initial loading
   const [refreshing, setRefreshing] = useState(false);
 
@@ -44,8 +45,11 @@ export default function MyEventsScreen({ navigation }) {
 
   if (events === null) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={theme.accent} size="large" />
+      <View style={{ flex: 1, backgroundColor: theme.surface }}>
+        <Header navigation={navigation} />
+        <View style={styles.center}>
+          <ActivityIndicator color={theme.accent} size="large" />
+        </View>
       </View>
     );
   }
@@ -64,7 +68,7 @@ export default function MyEventsScreen({ navigation }) {
   if (sections.length === 0) {
     return (
       <Screen edges={['top', 'left', 'right']}>
-        <Header />
+        <Header navigation={navigation} />
         <View style={styles.center}>
           <Ionicons name="calendar-outline" size={40} color={theme.textMuted} />
           <Text style={styles.emptyTitle}>No events yet</Text>
@@ -84,9 +88,9 @@ export default function MyEventsScreen({ navigation }) {
       <FlatList
         style={{ backgroundColor: theme.surface }}
         data={sections}
-        ListHeaderComponent={<Header />}
         keyExtractor={(s) => s.title}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListHeaderComponent={<Header navigation={navigation} />}
         renderItem={({ item: section }) => (
           <View>
             <Text style={styles.sectionHeader}>{section.title}</Text>
@@ -101,10 +105,13 @@ export default function MyEventsScreen({ navigation }) {
   );
 }
 
-function Header() {
+function Header({ navigation }) {
   return (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>My Events</Text>
+      <Pressable onPress={() => navigation.navigate('BulkReminders')} hitSlop={10}>
+        <Ionicons name="layers-outline" size={20} color={theme.skyText} />
+      </Pressable>
     </View>
   );
 }
@@ -135,7 +142,10 @@ function EventRow({ event, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: theme.sky, paddingHorizontal: 16, paddingVertical: 14 },
+  header: {
+    backgroundColor: theme.sky, paddingHorizontal: 16, paddingVertical: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
   headerTitle: { fontSize: 16, fontWeight: '600', color: theme.skyText },
   center: {
     flex: 1, alignItems: 'center', justifyContent: 'center',

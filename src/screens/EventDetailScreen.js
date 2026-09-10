@@ -20,6 +20,7 @@ import Screen from '../components/Screen';
 import { ShareComposerModal } from '../components/ShareComposerModal';
 import { MESSAGE_STYLES, REMINDER_OPTIONS, SHARE_TEMPLATES } from '../constants/constant';
 import ConfirmModal from '../components/ConfirmModal';
+import StatusModal from '../components/StatusModal';
 
 export default function EventDetailScreen({ navigation, route }) {
 
@@ -37,6 +38,12 @@ function FestivalDetail({ navigation, route }) {
   const [data, setData] = useState(null);
   const [reminders, setReminders] = useState([1440]);
   const [busy, setBusy] = useState(false);
+  const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' });
+
+  const showError = (title, message) =>
+    setErrorModal({ visible: true, title, message });
+  const hideError = () =>
+    setErrorModal({ visible: false, title: '', message: '' });
 
   const load = useCallback(async () => {
     const d = await getReligiousEventOccurrence(code, date);
@@ -49,9 +56,15 @@ function FestivalDetail({ navigation, route }) {
   if (!data) return <Loading />;
 
   const toggleTrack = async () => {
+    if (busy) return;
+    const wasTracked = data.is_tracked;
+
+    // ── Optimistic update: flip the toggle immediately ──────────────────
+    setData((prev) => ({ ...prev, is_tracked: !wasTracked }));
     setBusy(true);
+
     try {
-      if (data.is_tracked) {
+      if (wasTracked) {
         if (data.user_event_id) await cancelEventReminders(data.user_event_id);
         await untrackReligiousEvent(code);
       } else {
@@ -62,14 +75,18 @@ function FestivalDetail({ navigation, route }) {
             event_date: created.event_date, start_time: created.start_time
           },
           reminders);
+        // Patch in the new user_event_id so reminder toggling works immediately
+        setData((prev) => ({ ...prev, user_event_id: created.id }));
       }
-      await load();
     } catch (e) {
-      Alert.alert('Something went wrong', e.message);
+      // Revert the optimistic change on failure
+      setData((prev) => ({ ...prev, is_tracked: wasTracked }));
+      showError('Something went wrong', e.message);
     } finally {
       setBusy(false);
     }
   };
+
 
   const toggleReminder = async (minutes) => {
     const next = reminders.includes(minutes)
@@ -87,7 +104,7 @@ function FestivalDetail({ navigation, route }) {
             event_date: created.event_date, start_time: created.start_time
           },
           next);
-      } catch (e) { Alert.alert('Could not update reminder', e.message); }
+      } catch (e) { showError('Could not update reminder', e.message); }
       finally { setBusy(false); }
     }
   };
@@ -211,6 +228,16 @@ function FestivalDetail({ navigation, route }) {
           )}
         </View>
       </ScrollView>
+
+      <StatusModal
+        visible={errorModal.visible}
+        type="error"
+        title={errorModal.title}
+        message={errorModal.message}
+        autoClose={false}
+        onPrimary={hideError}
+        onRequestClose={hideError}
+      />
     </Screen>
   );
 }
@@ -220,7 +247,13 @@ function FestivalDetail({ navigation, route }) {
 // ---------------------------------------------------------------------
 function UserEventDetail({ navigation, route }) {
   const { userEventId } = route.params;
-  const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" })
+  const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" });
+  const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' });
+
+  const showError = (title, message) =>
+    setErrorModal({ visible: true, title, message });
+  const hideError = () =>
+    setErrorModal({ visible: false, title: '', message: '' });
 
   const [event, setEvent] = useState(null);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -260,7 +293,7 @@ function UserEventDetail({ navigation, route }) {
       await addParticipant(event.id, { name: contact.name, mobile: phone || '' });
       load();
     } catch (e) {
-      Alert.alert('Could not add participant', e.message);
+      showError('Could not add participant', e.message);
     }
   };
 
@@ -437,6 +470,7 @@ function UserEventDetail({ navigation, route }) {
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
         onPick={onContactPicked}
+        onError={showError}
       />
 
       <ShareComposerModal
@@ -471,11 +505,21 @@ function UserEventDetail({ navigation, route }) {
         onCancel={() => setModalDetails({ visible: false, title: "", message: "" })}
         onRequestClose={() => setModalDetails({ visible: false, title: "", message: "" })}
       />
+
+      <StatusModal
+        visible={errorModal.visible}
+        type="error"
+        title={errorModal.title}
+        message={errorModal.message}
+        autoClose={false}
+        onPrimary={hideError}
+        onRequestClose={hideError}
+      />
     </Screen>
   );
 }
 
-function ContactPickerModal({ visible, onClose, onPick }) {
+function ContactPickerModal({ visible, onClose, onPick, onError }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
@@ -486,7 +530,7 @@ function ContactPickerModal({ visible, onClose, onPick }) {
     (async () => {
       const { status } = await Contacts.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Contacts permission needed',
+        onError?.('Contacts permission needed',
           'Enable contacts access in Settings to invite people from your phone.');
         setLoading(false);
         return;
