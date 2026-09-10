@@ -50,9 +50,10 @@ export default function ProfileScreen({ stats = { events: 0, reminders: 0, strea
     const panjiLabel = profile ? `${profile.calendar_name} · ${profile.location_name}` : '—';
 
     const user = {
-        name: profile?.name || 'Devotee',
+        name: profile?.first_name || 'Devotee',
         username: profile?.phone ? `+${profile.phone}` : '',
         avatar: profile?.avatar || null,
+        phone: profile?.phone,
     };
 
     return (
@@ -81,7 +82,7 @@ export default function ProfileScreen({ stats = { events: 0, reminders: 0, strea
                 </View>
 
                 <Text style={styles.name}>{user.name}</Text>
-                <Text style={styles.username}>{user.username}</Text>
+                <Text style={styles.username}>{user.username || '--'}</Text>
 
                 {/* <Pressable style={styles.editBtn} onPress={onEditProfile}>
                     <Text style={styles.editBtnText}>Edit Profile</Text>

@@ -1,61 +1,227 @@
+import { useRef, useState } from "react";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, ImageBackground, Modal, PanResponder, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import ViewShot from "react-native-view-shot";
+import * as ImagePicker from "expo-image-picker";
+import * as Sharing from "expo-sharing";
 import { radius, theme } from "../theme/theme";
-import ConfirmModal from "./ConfirmModal";
-import { useState } from "react";
-import { MESSAGE_STYLES } from "../constants/constant";
+import StatusModal from "./StatusModal";
+import { MESSAGE_STYLES, SHARE_TEMPLATES } from "../constants/constant";
+
+const FONT_OPTIONS = [
+    {
+        id: "classic",
+        label: "Classic",
+        family: Platform.OS === "ios" ? "Helvetica" : "sans-serif",
+    },
+    {
+        id: "serif",
+        label: "Serif",
+        family: Platform.OS === "ios"
+            ? "Times New Roman"
+            : "serif",
+    },
+    {
+        id: "mono",
+        label: "Mono",
+        family: "monospace",
+    },
+    {
+        id: "medium",
+        label: "Medium",
+        family: "sans-serif-medium",
+    },
+];
+
+const TEXT_COLORS = [
+    "#FFFFFF",
+    "#000000",
+    "#7A263A",
+    "#9A5B13",
+    "#D4AF37",
+    "#F5E6C8",
+    "#2E5D3B",
+];
+
+const FONT_SIZES = [
+    { label: "S", value: 16 },
+    { label: "M", value: 20 },
+    { label: "L", value: 24 },
+    { label: "XL", value: 30 },
+];
 
 export function ShareComposerModal({
-    visible,
-    event,
-    defaultMessage,
-    selectedTemplate,
-    setSelectedTemplate,
-    selectedMessageStyle,
-    selectMessageStyle,
-    shareMessage,
-    setShareMessage,
-    customImage,
-    pickCustomImage,
-    sharing,
-    setSharing,
-    onClose,
+    visible, event, defaultMessage, selectedTemplate, setSelectedTemplate, selectedMessageStyle, selectMessageStyle,
+    shareMessage, setShareMessage, customImage, setCustomImage, sharing, setSharing, onClose,
 }) {
+    const invitationRef = useRef(null);
+    const [textColor, setTextColor] = useState("#FFFFFF");
+    const [fontSize, setFontSize] = useState(20);
+    const [fontFamily, setFontFamily] = useState(Platform.OS === "ios" ? "Helvetica" : "sans-serif");
+    const [textPosition, setTextPosition] = useState({ x: 0, y: 0 });
+    const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+    const [textOnly, setTextOnly] = useState(false);
+    const [editingTarget, setEditingTarget] = useState("text");
+    const [shareMode, setShareMode] = useState("image");
+
     const message = shareMessage.trim() || defaultMessage;
-    const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" })
+
+    const textStartPosition = useRef({ x: 0, y: 0 }).current;
+    const imageStartPosition = useRef({ x: 0, y: 0 }).current;
+
+    const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" });
+
+    const closeStatusModal = () => setModalDetails({ visible: false, title: "", message: "" });
+
+    const showStatusModal = (title, message) => {
+        setModalDetails({ visible: true, title, message });
+    };
+
     if (!event) return null;
 
-    const previewImage = customImage ? { uri: customImage } : selectedTemplate.image;
+    const activeTemplate = selectedTemplate;
+    const backgroundSource = customImage ? { uri: customImage } : activeTemplate?.image;
+
+    const pickCustomImage = async () => {
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (!permission.granted) {
+                showStatusModal(
+                    "Permission required",
+                    "Please allow photo access to choose a background image."
+                );
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: false,
+                quality: 1,
+            });
+
+            if (result.canceled || !result.assets?.length) {
+                return;
+            }
+
+            setCustomImage(result.assets[0].uri);
+        } catch (error) {
+            console.error("Image picker error:", error);
+
+            showStatusModal(
+                "Could not select image",
+                "Please try again."
+            );
+        }
+    };
+
+    const textPanResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+
+            onPanResponderGrant: () => {
+                setEditingTarget("text");
+                textStartPosition.x = textPosition.x;
+                textStartPosition.y = textPosition.y;
+            },
+
+            onPanResponderMove: (_, gesture) => {
+                setTextPosition({
+                    x: textStartPosition.x + gesture.dx,
+                    y: textStartPosition.y + gesture.dy,
+                });
+            },
+        })
+    ).current;
+
+    const imagePanResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+
+            onPanResponderGrant: () => {
+                setEditingTarget("image");
+                imageStartPosition.x = imagePosition.x;
+                imageStartPosition.y = imagePosition.y;
+            },
+
+            onPanResponderMove: (_, gesture) => {
+                setImagePosition({
+                    x: imageStartPosition.x + gesture.dx,
+                    y: imageStartPosition.y + gesture.dy,
+                });
+            },
+        })
+    ).current;
+
+    const handleSelectTemplate = (template) => {
+        setSelectedTemplate(template);
+        setCustomImage?.(null);
+    };
 
     const doShare = async () => {
-        if (!shareMessage.trim()) {
-            setModalDetails({ visible: true, title: "Message required", message: 'Please enter a message to share.' })
+        const message = shareMessage.trim() || defaultMessage;
+
+        if (!message) {
+            setModalDetails({
+                visible: true,
+                title: "Message required",
+                message: "Please enter a message to share.",
+            });
             return;
         }
 
-        const message = shareMessage.trim() || getDefaultShareMessage(event);
+        if (!invitationRef.current) {
+            showStatusModal(
+                "Please try again",
+                "Invitation preview is not ready yet."
+            );
+            return;
+        }
 
         try {
             setSharing(true);
 
-            // await RNShare.open({
-            //     title: event.title,
-            //     message: shareMessage,
-            //     url: customImage || undefined,
-            //     type: customImage ? 'image/*' : undefined,
-            //     failOnCancel: false,
-            // });
-            await Share.share({
-                title: event.title,
-                message,
-            });
+            if (shareMode === "text") {
+                await Share.share({
+                    title: event?.title || "Invitation",
+                    message,
+                });
 
-
-            onClose();
-        } catch (e) {
-            if (e?.message !== 'User did not share') {
-                Alert.alert('Could not share', e.message);
+                onClose?.();
+                return;
             }
+
+            if (!invitationRef.current) {
+                showStatusModal("Please try again", "Invitation preview is not ready yet.");
+                return;
+            }
+
+            const uri = await invitationRef.current.capture();
+            const available = await Sharing.isAvailableAsync();
+
+            if (!available) {
+                showStatusModal("Sharing unavailable", "Image sharing is not available on this device.");
+                return;
+            }
+
+            await Sharing.shareAsync(
+                uri.startsWith("file://") ? uri : `file://${uri}`,
+                {
+                    mimeType: "image/png",
+                    dialogTitle: "Share Invitation",
+                    UTI: "public.png",
+                }
+            );
+
+            onClose?.();
+        } catch (error) {
+            console.error("Share error:", error);
+
+            showStatusModal(
+                "Could not share",
+                error?.message ||
+                "Something went wrong while creating the invitation."
+            );
         } finally {
             setSharing(false);
         }
@@ -79,11 +245,7 @@ export function ShareComposerModal({
                             </Text>
 
                             <Pressable onPress={onClose} hitSlop={10}>
-                                <Ionicons
-                                    name="close"
-                                    size={22}
-                                    color={theme.textMuted}
-                                />
+                                <Ionicons name="close" size={22} color={theme.textMuted} />
                             </Pressable>
                         </View>
 
@@ -93,115 +255,279 @@ export function ShareComposerModal({
                         >
 
                             {/* Preview */}
-                            {/* <Text style={styles.shareSectionTitle}>
-                                Preview
-                            </Text>
+                            <Text style={styles.shareSectionTitle}> Preview</Text>
 
-                            <View style={styles.sharePreview}>
-                                <Image
-                                    source={previewImage}
-                                    style={styles.sharePreviewImage}
-                                />
+                            <ViewShot
+                                ref={invitationRef}
+                                collapsable={false}
+                                style={styles.invitationCard}
+                                options={{ format: "png", quality: 1, result: "tmpfile" }}
+                            >
+                                {textOnly ? (
+                                    <View style={styles.textOnlyBackground}>
+                                        <View
+                                            {...textPanResponder.panHandlers}
+                                            style={[styles.invitationContent, { transform: [{ translateX: textPosition.x }, { translateY: textPosition.y }] }]}
+                                        >
+                                            <Text style={[styles.invitationMessage, { color: textColor, fontSize, fontFamily }]}>
+                                                {message}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <ImageBackground
+                                        source={backgroundSource}
+                                        style={styles.invitationBackground}
+                                        imageStyle={[styles.invitationBackgroundImage,
+                                        { transform: [{ translateX: imagePosition.x }, { translateY: imagePosition.y },] },
+                                        ]}
+                                        {...(!textOnly && editingTarget === "image"
+                                            ? imagePanResponder.panHandlers
+                                            : {})}
+                                    >
+                                        <View style={styles.invitationOverlay} />
 
-                                <View style={styles.sharePreviewOverlay}>
-                                    <Text style={styles.sharePreviewTitle}>
-                                        {event.title}
-                                    </Text>
+                                        <View style={styles.invitationContent}>
 
-                                    <Text style={styles.sharePreviewDate}>
-                                        {dayjs(event.event_date).format('dddd, D MMMM YYYY')}
-                                    </Text>
+                                            <View
+                                                {...textPanResponder.panHandlers}
+                                                style={{
+                                                    transform: [{ translateX: textPosition.x }, { translateY: textPosition.y }],
+                                                    alignItems: "center",
+                                                }}
+                                            >
+                                                <Text style={[styles.invitationTitle, { color: textColor, fontSize, fontFamily }]}>
+                                                    {event.title}
+                                                </Text>
+                                                {/* 
+                                                {!!event.event_date && (
+                                                    <Text style={[styles.invitationDate, { color: textColor, fontFamily }]}>
+                                                        {new Date(event.event_date).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                                                    </Text>
+                                                )}
 
-                                    {!!event.start_time && (
-                                        <Text style={styles.sharePreviewDate}>
-                                            {dayjs(
-                                                `2000-01-01 ${event.start_time}`
-                                            ).format('h:mm a')}
+                                                {!!event.start_time && (
+                                                    <Text style={[styles.invitationTime, { color: textColor, fontFamily }]}>
+                                                        {event.start_time}
+                                                    </Text>
+                                                )} */}
+
+                                                <Text style={[styles.invitationMessage, { color: textColor, fontFamily, }]}>
+                                                    {message}
+                                                </Text>
+
+                                                {/* <Text
+                                                    style={[
+                                                        styles.invitationFooter,
+                                                        {
+                                                            color: textColor,
+                                                            fontFamily,
+                                                        },
+                                                    ]}
+                                                >
+                                                    Shared from Agam Mandira
+                                                </Text> */}
+                                            </View>
+                                        </View>
+                                    </ImageBackground>
+                                )}
+                            </ViewShot>
+                            {/* 
+                            <View
+                                ref={invitationRef}
+                                collapsable={false}
+                                style={styles.invitationCard}
+                            >
+                                <ImageBackground
+                                    source={backgroundSource}
+                                    style={styles.invitationBackground}
+                                    imageStyle={styles.invitationBackgroundImage}
+                                >
+                                    <View style={styles.invitationOverlay} />
+
+                                    <View style={styles.invitationContent}>
+                                        <Text style={styles.invitationTitle}>
+                                            {event.title}
                                         </Text>
-                                    )}
-                                </View>
+
+                                        {!!event.event_date && (
+                                            <Text style={styles.invitationDate}>
+                                                {new Date(event.event_date).toLocaleDateString(
+                                                    undefined,
+                                                    {
+                                                        weekday: "long",
+                                                        day: "numeric",
+                                                        month: "long",
+                                                        year: "numeric",
+                                                    }
+                                                )}
+                                            </Text>
+                                        )}
+
+                                        {!!event.start_time && (
+                                            <Text style={styles.invitationTime}>
+                                                {event.start_time}
+                                            </Text>
+                                        )}
+
+                                        <Text style={styles.invitationMessage}>
+                                            {shareMessage.trim() || defaultMessage}
+                                        </Text>
+
+                                        <Text style={styles.invitationFooter}>
+                                            Shared from Agam Mandira
+                                        </Text>
+                                    </View>
+                                </ImageBackground>
                             </View> */}
 
                             {/* Image templates */}
-                            {/* <Text style={styles.shareSectionTitle}>
-                                Choose image
+                            <Text style={styles.shareSectionTitle}>
+                                Background
                             </Text>
 
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.templateList}
+                                contentContainerStyle={styles.editorOptionList}
                             >
+                                <Pressable
+                                    style={[styles.editorOption, textOnly && styles.editorOptionSelected,]}
+                                    onPress={() => setTextOnly(true)}
+                                >
+                                    <Ionicons name="text-outline" size={18} color={textOnly ? theme.accent : theme.textMuted} />
+
+                                    <Text style={styles.editorOptionText}>
+                                        Text Only
+                                    </Text>
+                                </Pressable>
+
                                 {SHARE_TEMPLATES.map((template) => {
-                                    const selected =
-                                        !customImage &&
-                                        selectedMessageStyle?.id === template.id;
+                                    const selected = !textOnly && !customImage && selectedTemplate?.id === template.id;
 
                                     return (
                                         <Pressable
                                             key={template.id}
-                                            onPress={() => setSelectedTemplate(template)}
-                                            style={[
-                                                styles.templateItem,
-                                                selected && styles.templateItemSelected,
-                                            ]}
+                                            style={[styles.editorOption, selected && styles.editorOptionSelected]}
+                                            onPress={() => { setTextOnly(false); handleSelectTemplate(template); }}
                                         >
-                                            <Image
-                                                source={template.image}
-                                                style={styles.templateImage}
-                                            />
+                                            <Image source={template.image} style={styles.editorOptionImage} />
 
-                                            <Text style={styles.templateName}>
+                                            <Text style={styles.editorOptionText}>
                                                 {template.name}
                                             </Text>
-
-                                            {selected && (
-                                                <View style={styles.templateCheck}>
-                                                    <Ionicons
-                                                        name="checkmark"
-                                                        size={13}
-                                                        color="#fff"
-                                                    />
-                                                </View>
-                                            )}
                                         </Pressable>
                                     );
-                                })} */}
+                                })}
 
-                            {/* Custom image */}
-                            {/* <Pressable
-                                    style={[
-                                        styles.templateItem,
-                                        customImage && styles.templateItemSelected,
-                                    ]}
-                                    onPress={pickCustomImage}
+                                <Pressable
+                                    style={[styles.editorOption, customImage && styles.editorOptionSelected,]}
+                                    onPress={() => { setTextOnly(false); pickCustomImage(); }}
                                 >
-                                    <View style={styles.uploadImageBox}>
-                                        {customImage ? (
-                                            <Image
-                                                source={{ uri: customImage }}
-                                                style={styles.templateImage}
-                                            />
-                                        ) : (
-                                            <>
-                                                <Ionicons
-                                                    name="image-outline"
-                                                    size={25}
-                                                    color={theme.textMuted}
-                                                />
+                                    <Ionicons name="image-outline" size={18} color={theme.textMuted} />
 
-                                                <Text style={styles.uploadText}>
-                                                    Upload
-                                                </Text>
-                                            </>
-                                        )}
-                                    </View>
-
-                                    <Text style={styles.templateName}>
-                                        My photo
+                                    <Text style={styles.editorOptionText}>
+                                        My Photo
                                     </Text>
                                 </Pressable>
-                            </ScrollView> */}
+                            </ScrollView>
+
+                            {/* Text color */}
+                            <Text style={styles.shareSectionTitle}>
+                                Text color
+                            </Text>
+
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.colorList}
+                            >
+                                {TEXT_COLORS.map((color) => (
+                                    <Pressable
+                                        key={color}
+                                        onPress={() => setTextColor(color)}
+                                        style={[styles.colorButton, { backgroundColor: color }, textColor === color && styles.colorButtonSelected,]}
+                                    />
+                                ))}
+                            </ScrollView>
+
+                            <Text style={styles.shareSectionTitle}>
+                                Font
+                            </Text>
+
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.editorOptionList}
+                            >
+                                {FONT_OPTIONS.map((font) => {
+                                    const selected =
+                                        font.family === fontFamily;
+
+                                    return (
+                                        <Pressable
+                                            key={font.id}
+                                            onPress={() => setFontFamily(font.family)}
+                                            style={[styles.fontButton, selected && styles.fontButtonSelected]}
+                                        >
+                                            <Text style={{ fontFamily: font.family, color: theme.text }} >
+                                                {font.label}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </ScrollView>
+
+                            <Text style={styles.shareSectionTitle}>
+                                Text size
+                            </Text>
+
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.editorOptionList}
+                            >
+                                {FONT_SIZES.map((size) => {
+                                    const selected = fontSize === size.value;
+
+                                    return (
+                                        <Pressable key={size.label} onPress={() => setFontSize(size.value)} style={[styles.fontButton, selected && styles.fontButtonSelected]}>
+                                            <Text style={{ fontSize: size.value > 24 ? 16 : 14, color: theme.text, }}>
+                                                {size.label}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </ScrollView>
+
+                            <Text style={styles.shareSectionTitle}>
+                                Move
+                            </Text>
+
+                            <View style={styles.moveModeContainer}>
+                                <Pressable
+                                    onPress={() => setEditingTarget("text")}
+                                    style={[styles.moveModeButton, editingTarget === "text" && styles.moveModeButtonSelected]}
+                                >
+                                    <Ionicons name="text-outline" size={16} color={theme.text} />
+                                    <Text style={styles.moveModeText}>
+                                        Move Text
+                                    </Text>
+                                </Pressable>
+
+                                {!textOnly && (
+                                    <Pressable
+                                        onPress={() => setEditingTarget("image")}
+                                        style={[styles.moveModeButton, editingTarget === "image" && styles.moveModeButtonSelected]}
+                                    >
+                                        <Ionicons name="image-outline" size={16} color={theme.text}
+                                        />
+                                        <Text style={styles.moveModeText}>
+                                            Move Image
+                                        </Text>
+                                    </Pressable>
+                                )}
+                            </View>
 
                             {/* Message styles */}
                             <Text style={styles.shareSectionTitle}>
@@ -214,26 +540,14 @@ export function ShareComposerModal({
                                 contentContainerStyle={styles.messageStyleList}
                             >
                                 {MESSAGE_STYLES.map((style) => {
-                                    const selected =
-                                        selectedMessageStyle?.id === style.id;
-
+                                    const selected = selectedMessageStyle?.id === style.id;
                                     return (
                                         <Pressable
                                             key={style.id}
                                             onPress={() => selectMessageStyle(style)}
-                                            style={[
-                                                styles.messageStyleButton,
-                                                selected &&
-                                                styles.messageStyleButtonSelected,
-                                            ]}
+                                            style={[styles.messageStyleButton, selected && styles.messageStyleButtonSelected,]}
                                         >
-                                            <Text
-                                                style={[
-                                                    styles.messageStyleText,
-                                                    selected &&
-                                                    styles.messageStyleTextSelected,
-                                                ]}
-                                            >
+                                            <Text style={[styles.messageStyleText, selected && styles.messageStyleTextSelected,]}>
                                                 {style.label}
                                             </Text>
                                         </Pressable>
@@ -265,27 +579,90 @@ export function ShareComposerModal({
                                 style={styles.shareMessageInput}
                             />
 
+                            <Text style={styles.shareSectionTitle}>
+                                Share as
+                            </Text>
+
+                            <View style={styles.shareModeContainer}>
+                                <Pressable
+                                    onPress={() => setShareMode("image")}
+                                    style={[
+                                        styles.shareModeButton,
+                                        shareMode === "image" &&
+                                        styles.shareModeButtonSelected,
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name="image-outline"
+                                        size={18}
+                                        color={
+                                            shareMode === "image"
+                                                ? theme.accent
+                                                : theme.textMuted
+                                        }
+                                    />
+
+                                    <Text
+                                        style={[
+                                            styles.shareModeText,
+                                            shareMode === "image" &&
+                                            styles.shareModeTextSelected,
+                                        ]}
+                                    >
+                                        Invitation Image
+                                    </Text>
+                                </Pressable>
+
+                                <Pressable
+                                    onPress={() => setShareMode("text")}
+                                    style={[
+                                        styles.shareModeButton,
+                                        shareMode === "text" &&
+                                        styles.shareModeButtonSelected,
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name="text-outline"
+                                        size={18}
+                                        color={
+                                            shareMode === "text"
+                                                ? theme.accent
+                                                : theme.textMuted
+                                        }
+                                    />
+
+                                    <Text
+                                        style={[
+                                            styles.shareModeText,
+                                            shareMode === "text" &&
+                                            styles.shareModeTextSelected,
+                                        ]}
+                                    >
+                                        Text Only
+                                    </Text>
+                                </Pressable>
+                            </View>
+
                             {/* Share */}
                             <Pressable
-                                style={[
-                                    styles.finalShareButton,
-                                    sharing && { opacity: 0.6 },
-                                ]}
+                                style={[styles.finalShareButton, sharing && { opacity: 0.6 }]}
                                 onPress={doShare}
                                 disabled={sharing}
                             >
                                 {sharing ? (
-                                    <ActivityIndicator color="#fff" />
-                                ) : (
                                     <>
-                                        <Ionicons
-                                            name="share-outline"
-                                            size={18}
-                                            color="#fff"
-                                        />
+                                        <ActivityIndicator color="#fff" />
 
                                         <Text style={styles.finalShareButtonText}>
-                                            Share Invitation
+                                            {shareMode === "text" ? "Opening share..." : "Creating invitation..."}
+                                        </Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Ionicons name="share-outline" size={18} color="#fff" />
+
+                                        <Text style={styles.finalShareButtonText}>
+                                            {shareMode === "text" ? "Share Text" : "Share Invitation"}
                                         </Text>
                                     </>
                                 )}
@@ -295,15 +672,15 @@ export function ShareComposerModal({
                     </View>
                 </View>
             </Modal>
-            <ConfirmModal
+            <StatusModal
                 visible={modalDetails.visible}
                 type="error"
                 title={modalDetails.title}
                 message={modalDetails.message}
-                confirmLabel="ok"
-                onConfirm={() => setModalDetails({ visible: false, title: "", message: "" })}
-                onRequestClose={() => setModalDetails({ visible: false, title: "", message: "" })}
-
+                primaryLabel="OK"
+                onPrimary={closeStatusModal}
+                onRequestClose={closeStatusModal}
+                autoClose={false}
             />
         </>
     );
@@ -503,5 +880,211 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 14,
         fontWeight: '700',
+    },
+    invitationCard: {
+        width: "100%",
+        aspectRatio: 4 / 5,
+        borderRadius: 18,
+        overflow: "hidden",
+        backgroundColor: "#ddd",
+    },
+
+    invitationBackground: {
+        width: "100%",
+        height: "100%",
+    },
+
+    invitationBackgroundImage: {
+        resizeMode: "cover",
+    },
+
+    invitationOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(0,0,0,0.30)",
+    },
+
+    invitationContent: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 28,
+        paddingVertical: 30,
+    },
+
+    invitationTitle: {
+        color: "#fff",
+        fontSize: 26,
+        fontWeight: "800",
+        textAlign: "center",
+        textShadowColor: "rgba(0,0,0,0.55)",
+        textShadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        textShadowRadius: 4,
+    },
+
+    invitationDate: {
+        color: "#fff",
+        fontSize: 14,
+        fontWeight: "600",
+        textAlign: "center",
+        marginTop: 12,
+    },
+
+    invitationTime: {
+        color: "#fff",
+        fontSize: 14,
+        fontWeight: "600",
+        textAlign: "center",
+        marginTop: 4,
+    },
+
+    invitationMessage: {
+        color: "#fff",
+        fontSize: 15,
+        lineHeight: 22,
+        textAlign: "center",
+        marginTop: 20,
+    },
+
+    invitationFooter: {
+        color: "rgba(255,255,255,0.9)",
+        fontSize: 10,
+        marginTop: "auto",
+        textAlign: "center",
+    },
+
+    editorOptionList: {
+        gap: 8,
+        paddingVertical: 4,
+    },
+
+    editorOption: {
+        minWidth: 74,
+        height: 68,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 5,
+    },
+
+    editorOptionSelected: {
+        borderColor: theme.accent,
+        backgroundColor: theme.accentTint,
+    },
+
+    editorOptionImage: {
+        width: 42,
+        height: 38,
+        borderRadius: 7,
+    },
+
+    editorOptionText: {
+        fontSize: 10,
+        color: theme.text,
+        textAlign: "center",
+    },
+
+    colorList: {
+        gap: 10,
+        paddingVertical: 4,
+    },
+
+    colorButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        borderWidth: 2,
+        borderColor: theme.surface,
+    },
+
+    colorButtonSelected: {
+        borderColor: theme.accent,
+        transform: [{ scale: 1.12 }],
+    },
+
+    fontButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 9,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
+    },
+
+    fontButtonSelected: {
+        backgroundColor: theme.accentTint,
+        borderColor: theme.accent,
+    },
+
+    moveModeContainer: {
+        flexDirection: "row",
+        gap: 8,
+    },
+
+    moveModeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 9,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: theme.border,
+    },
+
+    moveModeButtonSelected: {
+        backgroundColor: theme.accentTint,
+        borderColor: theme.accent,
+    },
+
+    moveModeText: {
+        fontSize: 12,
+        color: theme.text,
+    },
+
+    textOnlyBackground: {
+        flex: 1,
+        backgroundColor: "#FCFAF6",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    shareModeContainer: {
+        flexDirection: "row",
+        gap: 10,
+    },
+
+    shareModeButton: {
+        flex: 1,
+        minHeight: 48,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 12,
+        backgroundColor: theme.surface,
+        paddingHorizontal: 10,
+    },
+
+    shareModeButtonSelected: {
+        borderColor: theme.accent,
+        backgroundColor: theme.accentTint,
+    },
+
+    shareModeText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: theme.textMuted,
+    },
+
+    shareModeTextSelected: {
+        color: theme.accent,
     },
 })

@@ -6,7 +6,7 @@
     "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -27,6 +27,7 @@
       },
       "permissions": [
         "NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ]
@@ -35,7 +36,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./src/assets/icon.png",
+          "icon": "./src/assets/notification_icon.png",
           "color": "#7A263A"
         }
       ],
@@ -48,10 +49,15 @@
         {
           "image": "./src/assets/logo-diya.png",
           "resizeMode": "contain",
-          "backgroundColor": "#FCFAF6"
+          "backgroundColor": "#FFFFFF"
         }
       ],
-      "expo-status-bar",
+      [
+        "expo-status-bar",
+        {
+          "hidden": false
+        }
+      ],
       "expo-web-browser",
       [
         "expo-audio",
@@ -61,7 +67,8 @@
         }
       ],
       "expo-asset",
-      "@react-native-vector-icons/ionicons"
+      "@react-native-vector-icons/ionicons",
+      "expo-sharing"
     ],
     "extra": {
       "eas": {

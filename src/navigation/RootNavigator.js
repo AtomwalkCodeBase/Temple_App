@@ -78,7 +78,7 @@ function ProfileStack({ onSignOut }) {
 } */}
 
 const ICONS = {
-  Today: 'moon', Month: 'calendar', Add: 'add-circle', 'My Events': 'list-circle', 'Settings': 'settings', "Profile": 'person-circle-outline'
+  Today: 'moon', Month: 'calendar', Add: 'add-circle', 'My Events': 'list-circle', Settings: 'settings', Profile: 'person-circle-outline'
 };
 
 function Tabs({ onSignOut }) {

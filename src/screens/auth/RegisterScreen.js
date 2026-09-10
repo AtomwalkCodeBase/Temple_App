@@ -6,13 +6,16 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { REGISTER_URL } from '../../services/api';
-import { theme, radius } from '../../theme/theme';
+import { theme, radius, spacing, fontSize } from '../../theme/theme';
 import { getPreLoginGreeting } from '../../services/i18n';
 import StatusModal from '../../components/StatusModal';
-import { Eye, EyeClosed } from 'lucide-react-native';
+import { Eye, EyeClosed, Moon, Sparkles } from 'lucide-react-native';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RegisterScreen({ onRegistered, onGoToLogin }) {
+  const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState('');
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
@@ -22,6 +25,8 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState({ title: "", message: "" });
   const [showPassword, setShowPassword] = useState(false);
+
+  const appVersion = Constants.expoConfig?.version || '0.0.1';
 
   const submit = async () => {
     if (!username || !password) {
@@ -66,55 +71,85 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
-      <Text style={styles.title}>{getPreLoginGreeting()}</Text>
-      <Text style={styles.subtitle}>Create your Panji account</Text>
+    <ScrollView contentContainerStyle={[styles.screen, { paddingBottom: insets.bottom + spacing.sm }]}>
+      {/* Night sky hero */}
+      <View style={styles.hero}>
+        <View style={styles.starRow}>
+          <View style={[styles.star, { top: 6, left: '18%' }]} />
+          <View style={[styles.star, { top: 26, left: '72%' }]} />
+          <View style={[styles.star, { top: 2, left: '48%' }]} />
+          <View style={[styles.star, { top: 40, left: '30%' }]} />
+          <View style={[styles.star, { top: 34, left: '85%' }]} />
+        </View>
+        <View style={styles.moonWrap}>
+          <Moon size={30} color={theme.moon} strokeWidth={1.5} />
+        </View>
+        <Text style={styles.title}>{getPreLoginGreeting()}</Text>
+        <Text style={styles.subtitle}>Begin your journey with Agam Mandira</Text>
+      </View>
 
-      <TextInput style={styles.input} placeholder="Your name"
-        placeholderTextColor={theme.textMuted} value={firstName} onChangeText={setFirstName} />
-      <TextInput style={styles.input} placeholder="Username"
-        placeholderTextColor={theme.textMuted} autoCapitalize="none"
-        value={username} onChangeText={setUsername} />
-      <TextInput style={styles.input} placeholder="Phone (optional)"
-        placeholderTextColor={theme.textMuted} keyboardType="phone-pad"
-        value={phone} onChangeText={setPhone} />
-      {/* <TextInput style={styles.input} placeholder="Password (min 8 characters)"
-        placeholderTextColor={theme.textMuted} secureTextEntry
-        value={password} onChangeText={setPassword} /> */}
-      <View style={styles.passwordWrapper}>
-        <TextInput
-          style={[styles.input, styles.passwordInput]}
-          placeholder="Password (min 8 characters)"
-          placeholderTextColor={theme.textMuted}
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-        />
+      {/* Daylight form card */}
+      <View style={styles.card}>
+        <Text style={styles.sectionLabel}>Enter your details</Text>
 
-        <Pressable
-          onPress={() => setShowPassword(prev => !prev)}
-          style={styles.eyeButton}
-        >
+        <TextInput style={styles.input} placeholder="Your name"
+          placeholderTextColor={theme.textMuted} value={firstName} onChangeText={setFirstName} />
+        <TextInput style={styles.input} placeholder="Username"
+          placeholderTextColor={theme.textMuted} autoCapitalize="none"
+          value={username} onChangeText={setUsername} />
+        <TextInput style={styles.input} placeholder="Phone (optional)"
+          placeholderTextColor={theme.textMuted} keyboardType="phone-pad"
+          value={phone} onChangeText={setPhone} />
 
-          {showPassword ? <EyeClosed size={20} color={theme.textMuted} /> : <Eye size={20} color={theme.textMuted} />}
+        <View style={styles.passwordWrapper}>
+          <TextInput
+            style={[styles.input, styles.passwordInput]}
+            placeholder="Password (min 8 characters)"
+            placeholderTextColor={theme.textMuted}
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <Pressable
+            onPress={() => setShowPassword(prev => !prev)}
+            style={styles.eyeButton}
+            hitSlop={8}
+          >
+            {showPassword ? <EyeClosed size={20} color={theme.textMuted} /> : <Eye size={20} color={theme.textMuted} />}
+          </Pressable>
+        </View>
 
+        {/* Sacred invite moment — set apart in gold, not another plain input */}
+        <View style={styles.inviteBlock}>
+          <View style={styles.inviteHeader}>
+            <Sparkles size={14} color={theme.sacredMuted} />
+            <Text style={styles.inviteLabel}>Family invite</Text>
+          </View>
+          <TextInput
+            style={styles.inviteInput}
+            placeholder="Enter code to unlock Gold"
+            placeholderTextColor={theme.sacredMuted}
+            autoCapitalize="characters"
+            value={inviteCode}
+            onChangeText={setInviteCode}
+          />
+          <Text style={styles.inviteHint}>Optional — a family member's code brings you in on Gold.</Text>
+        </View>
+
+        <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]} onPress={submit} disabled={busy}>
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create account</Text>}
+        </Pressable>
+
+        <Pressable onPress={onGoToLogin} style={{ marginTop: spacing.lg }}>
+          <Text style={styles.link}>Already have an account? Sign in</Text>
         </Pressable>
       </View>
-      <TextInput style={styles.input} placeholder="Family invite code (optional)"
-        placeholderTextColor={theme.textMuted} autoCapitalize="characters"
-        value={inviteCode} onChangeText={setInviteCode} />
-      <Text style={styles.hint}>
-        Have a family invite code? Enter it above to unlock Gold features.
-      </Text>
 
-      <Pressable style={styles.button} onPress={submit} disabled={busy}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create account</Text>}
-      </Pressable>
-
-      <Pressable onPress={onGoToLogin} style={{ marginTop: 16 }}>
-        <Text style={styles.link}>Already have an account? Sign in</Text>
-      </Pressable>
-
+      <View style={styles.versionContainer}>
+        <Text style={styles.versionText}>
+          App Version: {appVersion}
+        </Text>
+      </View>
 
       <StatusModal
         visible={showModal}
@@ -131,37 +166,145 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
 
 const styles = StyleSheet.create({
   screen: {
-    flexGrow: 1, backgroundColor: theme.sky, justifyContent: 'center',
-    paddingHorizontal: 28, paddingVertical: 40,
+    flexGrow: 1,
+    backgroundColor: theme.surfaceAlt,
   },
-  title: { color: theme.skyText, fontSize: 30, textAlign: 'center', marginBottom: 4 },
-  subtitle: { color: theme.skyMuted, fontSize: 14, textAlign: 'center', marginBottom: 24 },
+
+  // --- Hero: night sky ---
+  hero: {
+    backgroundColor: theme.sky,
+    paddingTop: 64,
+    paddingBottom: 40,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  starRow: { ...StyleSheet.absoluteFillObject },
+  star: {
+    position: 'absolute',
+    width: 3, height: 3, borderRadius: 2,
+    backgroundColor: theme.star,
+    opacity: 0.8,
+  },
+  moonWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(250,238,218,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.md,
+    borderWidth: 1, borderColor: theme.skyChipBorder,
+  },
+  title: {
+    color: theme.skyText,
+    fontSize: fontSize.xxl,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: theme.skyMuted,
+    fontSize: fontSize.md,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+
+  // --- Card: daylight form ---
+  card: {
+    marginTop: -24,
+    marginHorizontal: spacing.lg,
+    backgroundColor: theme.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: theme.border,
+    marginBottom: spacing.xxl,
+  },
+  sectionLabel: {
+    color: theme.text,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    marginBottom: spacing.md,
+  },
   input: {
-    backgroundColor: '#FFFFFF', borderRadius: radius.m,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-    marginBottom: 10, color: theme.text,
+    backgroundColor: theme.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: radius.m,
+    paddingHorizontal: spacing.base,
+    paddingVertical: 12,
+    fontSize: fontSize.md,
+    marginBottom: spacing.sm,
+    color: theme.text,
   },
-  hint: { color: theme.skyMuted, fontSize: 12, marginBottom: 16, marginTop: -2 },
-  button: {
-    backgroundColor: theme.accent, borderRadius: radius.m,
-    paddingVertical: 13, alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  link: { color: theme.skyMuted, fontSize: 13, textAlign: 'center', textDecorationLine: 'underline' },
-  passwordWrapper: {
-    position: 'relative',
-  },
-
-  passwordInput: {
-    paddingRight: 45,
-  },
-
+  passwordWrapper: { position: 'relative' },
+  passwordInput: { paddingRight: 45 },
   eyeButton: {
     position: 'absolute',
-    right: 12,
+    right: spacing.md,
     top: 0,
     height: 44,
     justifyContent: 'center',
     paddingHorizontal: 4,
+  },
+
+  // --- Invite: sacred/gold moment ---
+  inviteBlock: {
+    backgroundColor: theme.sacredTint,
+    borderRadius: radius.m,
+    borderWidth: 1,
+    borderColor: theme.sacred,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  inviteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  inviteLabel: {
+    color: theme.sacredText,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+  },
+  inviteInput: {
+    backgroundColor: theme.surface,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: theme.sacred,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontSize: fontSize.md,
+    color: theme.sacredText,
+  },
+  inviteHint: {
+    color: theme.sacredMuted,
+    fontSize: fontSize.xs,
+    marginTop: 6,
+  },
+
+  button: {
+    backgroundColor: theme.accent,
+    borderRadius: radius.m,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  buttonPressed: { backgroundColor: theme.accentDeep },
+  buttonText: { color: '#fff', fontSize: fontSize.md, fontWeight: '600' },
+  link: {
+    color: theme.textMuted,
+    fontSize: fontSize.base,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  versionContainer: {
+    marginTop: 'auto',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#95a5a6',
   },
 });

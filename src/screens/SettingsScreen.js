@@ -125,18 +125,6 @@ export default function SettingsScreen({ onSignOut }) {
       <ScrollView style={{ flex: 1, backgroundColor: theme.surface }}>
         <Header />
 
-        <Section title="Language">
-          {LANGUAGES.map((lang) => (
-            <OptionRow
-              key={lang.code}
-              label={lang.label}
-              selected={profile.language === lang.code}
-              busy={saving === 'language'}
-              onPress={() => save('language', lang.code)}
-            />
-          ))}
-        </Section>
-
         <Section title="Panji source">
           {calendars.map((cal) => (
             <OptionRow
@@ -167,6 +155,18 @@ export default function SettingsScreen({ onSignOut }) {
           {locations.length === 0 && (
             <Text style={styles.emptyNote}>No locations available yet.</Text>
           )}
+        </Section>
+
+        <Section title="Language">
+          {LANGUAGES.map((lang) => (
+            <OptionRow
+              key={lang.code}
+              label={lang.label}
+              selected={profile.language === lang.code}
+              busy={saving === 'language'}
+              onPress={() => save('language', lang.code)}
+            />
+          ))}
         </Section>
 
         {/* <Pressable style={styles.signOutButton} onPress={signOut}>

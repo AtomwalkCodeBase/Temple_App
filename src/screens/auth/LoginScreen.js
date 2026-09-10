@@ -1,26 +1,18 @@
-// LoginScreen.js — obtains the DRF auth token and stores it for api.js.
-//
-// MVP: username/password against POST /api-token-auth/ (same endpoint the
-// admin web uses, just with a regular, non-staff user). This is a
-// placeholder — phone+OTP is the real plan for a family/friends app, but
-// this unblocks development today with zero extra backend work.
-//
-// Swapping to OTP later only touches this screen + one backend endpoint;
-// api.js and every other screen are unaffected since they just read
-// whatever token is in AsyncStorage.
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { AUTH_LOGIN_URL } from '../../services/api';
-import { theme, radius } from '../../theme/theme';
-import { getPreLoginGreeting } from '../../services/i18n';
+import { theme, radius, spacing, fontSize } from '../../theme/theme';
 import StatusModal from '../../components/StatusModal';
-import { Eye, EyeClosed } from 'lucide-react-native';
+import { Eye, EyeClosed, Moon, Fingerprint } from 'lucide-react-native';
+import Constants from 'expo-constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen({ onLoggedIn, onGoToRegister }) {
+  const insets = useSafeAreaInsets();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +21,8 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister }) {
   const [modalData, setModalData] = useState({ title: "", message: "" });
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [hasSavedCreds, setHasSavedCreds] = useState(false);
+
+  const appVersion = Constants.expoConfig?.version || '0.0.1';
 
   useEffect(() => {
     (async () => {
@@ -98,57 +92,102 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister }) {
   };
 
   return (
-    <View style={styles.screen}>
-      <Text style={styles.title}>{getPreLoginGreeting()}</Text>
-      <Text style={styles.subtitle}>Sign in to your Panji</Text>
+    <ScrollView contentContainerStyle={[styles.screen, { paddingBottom: insets.bottom + spacing.sm }]}>
+      {/* Night sky hero, dressed with mandala rings + rangoli dots */}
+      <View style={styles.hero}>
+        <View style={styles.starRow}>
+          <View style={[styles.star, { top: 14, left: '14%' }]} />
+          <View style={[styles.star, { top: 34, left: '84%' }]} />
+          <View style={[styles.star, { top: 8, left: '58%' }]} />
+          <View style={[styles.star, { top: 50, left: '24%' }]} />
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        placeholderTextColor={theme.textMuted}
-        autoCapitalize="none"
-        value={username}
-        onChangeText={setUsername}
-      />
-      {/* <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor={theme.textMuted}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      /> */}
-      <View style={styles.passwordWrapper}>
+        <View style={styles.mandalaOuter}>
+          <View style={styles.mandalaInner}>
+            <Moon size={26} color={theme.moon} strokeWidth={1.5} />
+          </View>
+        </View>
+
+        <Text style={styles.title}>Welcome</Text>
+        <Text style={styles.subtitle}>Sign in to your account</Text>
+
+        <View style={styles.dotArc}>
+          {Array.from({ length: 7 }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                i === 3 && styles.dotCenter,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Bunting — temple-flag strip where sky meets the card */}
+        <View style={styles.bunting}>
+          {Array.from({ length: 9 }).map((_, i) => (
+            <View key={i} style={styles.flag} />
+          ))}
+        </View>
+      </View>
+
+      {/* Card */}
+      <View style={styles.card}>
+        <View style={styles.cardAccent} />
+
         <TextInput
-          style={[styles.input, styles.passwordInput]}
-          placeholder="Password"
+          style={styles.input}
+          placeholder="Username"
           placeholderTextColor={theme.textMuted}
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
+          autoCapitalize="none"
+          value={username}
+          onChangeText={setUsername}
         />
 
-        <Pressable
-          style={styles.eyeButton}
-          onPress={() => setShowPassword(prev => !prev)}
-        >
-          {showPassword ? <EyeClosed size={20} color={theme.textMuted} /> : <Eye size={20} color={theme.textMuted} />}
+        <View style={styles.passwordWrapper}>
+          <TextInput
+            style={[styles.input, styles.passwordInput]}
+            placeholder="Password"
+            placeholderTextColor={theme.textMuted}
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <Pressable
+            style={styles.eyeButton}
+            onPress={() => setShowPassword(prev => !prev)}
+            hitSlop={8}
+          >
+            {showPassword ? <EyeClosed size={20} color={theme.textMuted} /> : <Eye size={20} color={theme.textMuted} />}
+          </Pressable>
+        </View>
+
+        <View style={styles.actionRow}>
+          <Pressable
+            style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+            onPress={submit}
+            disabled={busy}
+          >
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
+          </Pressable>
+
+          {biometricSupported && hasSavedCreds && (
+            <Pressable style={styles.biometricCircle} onPress={handleBiometricAuth} disabled={busy}>
+              <Fingerprint size={20} color={theme.accent} />
+            </Pressable>
+          )}
+        </View>
+
+        <Pressable onPress={onGoToRegister} style={{ marginTop: spacing.lg }}>
+          <Text style={styles.link}>New here? Create an account</Text>
         </Pressable>
       </View>
 
-      <Pressable style={styles.button} onPress={submit} disabled={busy}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
-      </Pressable>
-
-      {biometricSupported && hasSavedCreds && (
-        <Pressable style={styles.biometricButton} onPress={handleBiometricAuth} disabled={busy}>
-          <Text style={styles.biometricButtonText}>Login with Biometrics</Text>
-        </Pressable>
-      )}
-
-      <Pressable onPress={onGoToRegister} style={{ marginTop: 16 }}>
-        <Text style={styles.link}>New here? Create an account</Text>
-      </Pressable>
+      <View style={styles.versionContainer}>
+        <Text style={styles.versionText}>
+          App Version: {appVersion}
+        </Text>
+      </View>
 
       <StatusModal
         visible={showModal}
@@ -159,48 +198,182 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister }) {
         onPrimary={() => setShowModal(false)}
         onRequestClose={() => setShowModal(false)}
       />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1, backgroundColor: theme.sky, justifyContent: 'center',
-    paddingHorizontal: 28,
+    flexGrow: 1,
+    backgroundColor: theme.surfaceAlt,
   },
-  title: { color: theme.skyText, fontSize: 34, textAlign: 'center', marginBottom: 4 },
-  subtitle: { color: theme.skyMuted, fontSize: 14, textAlign: 'center', marginBottom: 28 },
+
+  // --- Hero ---
+  hero: {
+    backgroundColor: theme.sky,
+    paddingTop: 56,
+    paddingBottom: 30,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  starRow: { ...StyleSheet.absoluteFillObject },
+  star: {
+    position: 'absolute',
+    width: 3, height: 3, borderRadius: 2,
+    backgroundColor: theme.star,
+    opacity: 0.8,
+  },
+
+  // Mandala rings around the moon medallion
+  mandalaOuter: {
+    width: 76, height: 76, borderRadius: 38,
+    borderWidth: 1,
+    borderColor: theme.skyLine,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  mandalaInner: {
+    width: 54, height: 54, borderRadius: 27,
+    borderWidth: 1,
+    borderColor: theme.sacred,
+    backgroundColor: 'rgba(250,238,218,0.06)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  title: {
+    color: theme.skyText,
+    fontSize: fontSize.xxl,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: theme.skyMuted,
+    fontSize: fontSize.md,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+
+  // Rangoli dot arc under the subtitle
+  dotArc: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: spacing.lg,
+    alignItems: 'center',
+  },
+  dot: {
+    width: 4, height: 4, borderRadius: 2,
+    backgroundColor: theme.skyLine,
+  },
+  dotCenter: {
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: theme.sacred,
+  },
+
+  // Temple bunting strip at the base of the hero
+  bunting: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '86%',
+    marginTop: spacing.xl,
+  },
+  flag: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 9,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: theme.sacred,
+    opacity: 0.7,
+  },
+
+  // --- Card ---
+  card: {
+    marginHorizontal: spacing.lg,
+    backgroundColor: theme.surface,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: theme.border,
+    marginBottom: spacing.xxl,
+    marginTop: -18,
+    alignItems: 'center',
+  },
+  cardAccent: {
+    width: 32,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: theme.sacred,
+    marginBottom: spacing.lg,
+  },
+
   input: {
-    backgroundColor: '#FFFFFF', borderRadius: radius.m,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-    marginBottom: 10, color: theme.text,
+    width: '100%',
+    backgroundColor: theme.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: radius.m,
+    paddingHorizontal: spacing.base,
+    paddingVertical: 12,
+    fontSize: fontSize.md,
+    marginBottom: spacing.sm,
+    color: theme.text,
   },
-  button: {
-    backgroundColor: theme.accent, borderRadius: radius.m,
-    paddingVertical: 13, alignItems: 'center', marginTop: 8,
-  },
-  buttonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  biometricButton: {
-    backgroundColor: 'transparent', borderRadius: radius.m,
-    borderWidth: 1, borderColor: theme.accent,
-    paddingVertical: 13, alignItems: 'center', marginTop: 12,
-  },
-  biometricButtonText: { color: theme.accent, fontSize: 15, fontWeight: '600' },
-  link: { color: theme.skyMuted, fontSize: 13, textAlign: 'center', textDecorationLine: 'underline' },
-  passwordWrapper: {
-    position: 'relative',
-  },
-
-  passwordInput: {
-    paddingRight: 45,
-  },
-
+  passwordWrapper: { position: 'relative', width: '100%' },
+  passwordInput: { paddingRight: 32 },
   eyeButton: {
     position: 'absolute',
-    right: 12,
+    right: 0,
     top: 0,
     height: 44,
     justifyContent: 'center',
     paddingHorizontal: 4,
+  },
+
+  actionRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  button: {
+    flex: 1,
+    backgroundColor: theme.accent,
+    borderRadius: radius.pill,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  buttonPressed: { backgroundColor: theme.accentDeep },
+  buttonText: { color: '#fff', fontSize: fontSize.md, fontWeight: '600' },
+  biometricCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: theme.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  link: {
+    color: theme.textMuted,
+    fontSize: fontSize.base,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  versionContainer: {
+    marginTop: 'auto',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#95a5a6',
   },
 });

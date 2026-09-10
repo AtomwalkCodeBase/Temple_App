@@ -248,41 +248,61 @@ export default function MonthScreen({ navigation, route }) {
                 ))}
               </View>
               <View style={styles.grid}>
-                {(viewMode === 'month' ? monthCells : weekCells).map((d, i) => {
-                  if (!d) return <View key={`blank-${i}`} style={{ width: CELL_SIZE, height: CELL_SIZE }} />;
-                  const dateStr = dayjs(d.date).format('YYYY-MM-DD');
-                  const isSelected = dateStr === selectedDate;
-                  return (
-                    <Pressable
-                      key={dateStr}
-                      onPress={() => selectDate(dateStr)}
-                      style={[
-                        styles.cell,
-                        { width: CELL_SIZE, height: viewMode === 'month' ? CELL_SIZE : CELL_SIZE + 14 },
-                        isSelected && styles.cellSelected,
-                        d.is_today && !isSelected && styles.cellToday,
-                      ]}
-                    >
-                      <MoonPhase
-                        tithiNumber={d.tithi_number}
-                        paksha={d.paksha}
-                        size={viewMode === 'month' ? 20 : 26}
-                        moonColor={d.has_festival ? theme.sacred : '#D3D1C7'}
-                        skyColor={isSelected ? theme.accentTint : theme.surface}
-                      />
-                      <Text style={[
-                        styles.cellDate,
-                        d.is_today && styles.cellDateToday,
-                        d.has_user_event && styles.cellDateUserEvent,
-                      ]}>
-                        {dayjs(d.date).date()}
-                      </Text>
-                      <View style={styles.cellDotRow}>
-                        {d.has_user_event && <View style={styles.eventDot} />}
+                {(() => {
+                  const cells = viewMode === 'month' ? monthCells : weekCells;
+                  const hasRealDays = cells.some((c) => c && c.date);
+
+                  if (!hasRealDays) {
+                    return (
+                      <View style={styles.emptyPlaceholder}>
+                        <Text style={styles.emptyPlaceholderText}>
+                          No data available
+                        </Text>
+                        <Text style={styles.emptyPlaceholderSubText}>
+                          {viewMode === 'month'
+                            ? 'No dates found for this month'
+                            : 'No dates found for this week'}
+                        </Text>
                       </View>
-                    </Pressable>
-                  );
-                })}
+                    );
+                  }
+
+                  return cells.map((d, i) => {
+                    if (!d) return <View key={`blank-${i}`} style={{ width: CELL_SIZE, height: CELL_SIZE }} />;
+                    const dateStr = dayjs(d.date).format('YYYY-MM-DD');
+                    const isSelected = dateStr === selectedDate;
+                    return (
+                      <Pressable
+                        key={dateStr}
+                        onPress={() => selectDate(dateStr)}
+                        style={[
+                          styles.cell,
+                          { width: CELL_SIZE, height: viewMode === 'month' ? CELL_SIZE : CELL_SIZE + 14 },
+                          isSelected && styles.cellSelected,
+                          d.is_today && !isSelected && styles.cellToday,
+                        ]}
+                      >
+                        <MoonPhase
+                          tithiNumber={d.tithi_number}
+                          paksha={d.paksha}
+                          size={viewMode === 'month' ? 20 : 26}
+                          moonColor={d.has_festival ? theme.sacred : '#D3D1C7'}
+                          skyColor={isSelected ? theme.accentTint : theme.surface}
+                        />
+                        <Text style={[
+                          styles.cellDate,
+                          d.is_today && styles.cellDateToday,
+                          d.has_user_event && styles.cellDateUserEvent,
+                        ]}>
+                          {dayjs(d.date).date()}
+                        </Text>
+                        <View style={styles.cellDotRow}>
+                          {d.has_user_event && <View style={styles.eventDot} />}
+                        </View>
+                      </Pressable>
+                    );
+                  });
+                })()}
               </View>
             </>
           )}
@@ -308,34 +328,6 @@ export default function MonthScreen({ navigation, route }) {
             onEventPress={(userEventId) => navigation.navigate('EventDetail', { userEventId })}
             onAddEvent={() => navigation.navigate('AddEvent', { prefillDate: selectedDate })}
           />
-
-          {/* {currentMonthAgenda.length > 0 && (
-            <View style={styles.agendaContent}>
-              <Text style={styles.agendaTitle}>This month</Text>
-              {currentMonthAgenda.map((ev) => (
-                <Pressable
-                  key={`${ev.kind}-${ev.id}`}
-                  style={[
-                    styles.agendaRow,
-                    ev.kind === 'religious' ? styles.agendaRowFestival : styles.agendaRowPersonal,
-                    ev.date === selectedDate && styles.agendaRowSelected,
-                  ]}
-                  onPress={() => selectDate(ev.date)}
-                >
-                  <Text style={styles.agendaDate}>{dayjs(ev.date).format('D MMM')}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.agendaEventTitle}>{ev.title}</Text>
-                    <Text style={styles.agendaSub}>{ev.subtitle}</Text>
-                  </View>
-                  <Ionicons
-                    name={ev.kind === 'religious' ? 'notifications-outline' : 'people-outline'}
-                    size={14}
-                    color={ev.kind === 'religious' ? theme.sacredMuted : theme.accent}
-                  />
-                </Pressable>
-              ))}
-            </View>
-          )} */}
         </ScrollView>
 
         <MonthAgendaDrawer
@@ -351,8 +343,6 @@ export default function MonthScreen({ navigation, route }) {
   );
 }
 
-// Lightweight swipe wrapper: three-page buffer, snaps back to center after a
-// swipe and asks the parent to shift its actual data cursor by ±1.
 function SwipeGrid({ mode, onSwipe, children }) {
   const scrollRef = useRef(null);
   const width = SCREEN_WIDTH;
@@ -400,6 +390,8 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
   const getEventTypeLabel = (key) => EVENT_TYPES.find((t) => t.key === key)?.label ?? key;
 
   const formatTime = (t) => (t ? dayjs(t, 'HH:mm:ss').format('h:mm A') : null);
+  const parseHHMMSS = (t) => (t ? dayjs(t, "HH:mm:ss") : null);
+
   const festivals = groupReligiousEvents(detail?.religious_events, date);
 
   function groupReligiousEvents(events = [], baseDate) {
@@ -425,14 +417,22 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
 
       const day1 = group[0];
       const day2 = group[1];
+
+      const start = parseHHMMSS(day1.start_time);
+      const end = parseHHMMSS(day2.end_time);
+
+      const startedPreviousDay = start && end && start.isAfter(end);
+
+      const fromDate = startedPreviousDay ? dayjs(baseDate).subtract(1, "day") : dayjs(baseDate);
+      const toDate = startedPreviousDay ? dayjs(baseDate) : dayjs(baseDate).add(1, "day");
       return {
-        key: `${first.code}-multi`,
+        key: `${first.code}`,
         name,
         name_local: first.name_local,
         importance: first.importance,
         isMultiDay: true,
-        from: day1.start_time ? { date: dayjs(baseDate).format('ddd, D MMM'), time: formatTime(day1.start_time) } : null,
-        to: day2.end_time ? { date: dayjs(baseDate).add(1, 'day').format('ddd, D MMM'), time: formatTime(day2.end_time) } : null,
+        from: day1.start_time ? { date: fromDate.format("ddd, D MMM"), time: formatTime(day1.start_time) } : null,
+        to: day2.end_time ? { date: toDate.format("ddd, D MMM"), time: formatTime(day2.end_time) } : null,
       };
     });
   }
@@ -657,4 +657,25 @@ const styles = StyleSheet.create({
   agendaDate: { fontSize: 12, color: theme.accent, fontWeight: '600', minWidth: 42 },
   agendaEventTitle: { fontSize: 13, fontWeight: '600', color: theme.text },
   agendaSub: { fontSize: 11, color: theme.textMuted, marginTop: 1 },
+  emptyPlaceholder: {
+    flex: 1,
+    width: '100%',
+    minHeight: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyPlaceholderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.textSecondary || '#666',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptyPlaceholderSubText: {
+    fontSize: 13,
+    color: theme.textMuted || '#999',
+    textAlign: 'center',
+  },
 });

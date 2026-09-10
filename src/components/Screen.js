@@ -6,6 +6,7 @@ import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // import { useTheme } from '../theme/ThemeContext';
 import { theme } from '../theme/theme';
+import { useColorScheme } from 'react-native';
 
 /**
  * edges: which sides to pad for safe area.
@@ -15,9 +16,12 @@ import { theme } from '../theme/theme';
  *    them): pass edges={['top', 'bottom', 'left', 'right']}
  */
 export default function Screen({ children, style, edges = ['top', 'left', 'right'] }) {
-  // const theme = useTheme();
+  const scheme = useColorScheme();
+  const isDarkMode = scheme === 'dark';
+
+  const statusBarColor = isDarkMode ? theme.surfaceAlt : '#042C53';
   return (
-    <SafeAreaView edges={edges} style={[{ flex: 1, backgroundColor: theme.surfaceAlt }, style]}>
+    <SafeAreaView edges={edges} style={[{ flex: 1, backgroundColor: statusBarColor }, style]}>
       {children}
     </SafeAreaView>
   );

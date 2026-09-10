@@ -19,6 +19,7 @@ import StatusModal from '../components/StatusModal';
 export default function AddEventScreen({ navigation, route, onSaved, }) {
   const params = route?.params ?? {};
   const editing = params.editUserEvent ?? null;
+  const prefillDate = params?.prefillDate ?? null;
   const track = params.trackCode
     ? {
       code: params.trackCode, name: params.trackName,
@@ -29,7 +30,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
   const [title, setTitle] = useState(editing?.title ?? track?.name ?? '');
   const [eventType, setEventType] = useState(editing?.event_type ?? 'PUJA');
   const [date, setDate] = useState(
-    editing?.event_date ? new Date(editing.event_date) : (track?.date ? new Date(track.date) : new Date())
+    editing?.event_date ? new Date(editing.event_date) : (track?.date ? new Date(track.date) : (prefillDate ? new Date(prefillDate) : new Date()))
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [hasTime, setHasTime] = useState(!!editing?.start_time);
@@ -42,7 +43,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
   const [yearly, setYearly] = useState(editing ? editing.recurrence_type === 'YEARLY' : true);
   const [description, setDescription] = useState(editing?.description ?? '');
   const [reminders, setReminders] = useState(
-    editing?.reminders?.length ? editing.reminders.map((r) => r.reminder_minutes ?? r) : [1440]
+    editing ? (editing.reminders ?? []).map((r) => r.reminder_minutes ?? r) : [1440]
   );
   const [saving, setSaving] = useState(false);
   const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" })
@@ -60,9 +61,8 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
     setTitle(nextEditing?.title ?? nextTrack?.name ?? '');
     setEventType(nextEditing?.event_type ?? 'PUJA');
     setDate(
-      nextEditing?.event_date
-        ? new Date(nextEditing.event_date)
-        : (nextTrack?.date ? new Date(nextTrack.date) : new Date())
+      nextEditing?.event_date ? new Date(nextEditing.event_date) : (nextTrack?.date
+        ? new Date(nextTrack.date) : (prefillDate ? new Date(prefillDate) : new Date()))
     );
     setHasTime(!!nextEditing?.start_time);
     setTime(
@@ -73,8 +73,8 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
     setYearly(nextEditing ? nextEditing.recurrence_type === 'YEARLY' : true);
     setDescription(nextEditing?.description ?? '');
     setReminders(
-      nextEditing?.reminders?.length
-        ? nextEditing.reminders.map((r) => r.reminder_minutes ?? r)
+      nextEditing
+        ? (nextEditing.reminders ?? []).map((r) => r.reminder_minutes ?? r)
         : [1440]
     );
   }, [
@@ -82,6 +82,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
     route?.params?.trackCode,
     route?.params?.trackName,
     route?.params?.trackDate,
+    route?.params?.prefillDate,
   ]);
 
   const toggleReminder = (minutes) =>
@@ -158,9 +159,9 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
 
       if (typeof onSaved === 'function') {
         onSaved();
-      } else {
-        navigation?.goBack?.();
       }
+      const tabNav = navigation?.getParent?.() ?? navigation;
+      tabNav?.navigate('My Events', { screen: 'MyEventsScreen' });
     } catch (e) {
       Alert.alert('Could not save', e.message);
     } finally {

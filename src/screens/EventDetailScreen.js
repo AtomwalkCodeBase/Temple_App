@@ -450,7 +450,7 @@ function UserEventDetail({ navigation, route }) {
         shareMessage={shareMessage}
         setShareMessage={setShareMessage}
         customImage={customImage}
-        // pickCustomImage={pickCustomImage}
+        setCustomImage={setCustomImage}
         sharing={sharing}
         setSharing={setSharing}
         onClose={() => setShareVisible(false)}

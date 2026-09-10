@@ -9,11 +9,19 @@ import { registerPushToken } from './src/services/notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 // import { PlayerProvider } from './src/context/PlayerContext';
 import { UserProvider } from './src/context/UserContext';
+import { useColorScheme } from 'react-native';
+import { useNetworkStatus } from './src/hooks/useNetworkStatus';
+import NoInternetModal from './src/components/NoInternetModal';
 
 export default function App() {
+  const isConnected = useNetworkStatus();
   const [booting, setBooting] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const scheme = useColorScheme();
+  const isDarkMode = scheme === 'dark';
+  const statusBarStyle = isDarkMode ? 'dark' : 'light';
 
   useEffect(() => {
     (async () => {
@@ -43,36 +51,33 @@ export default function App() {
 
   if (showSplash || booting) {
     return (
-      // <ThemeProvider>
-      <>
-        <StatusBar style="light" translucent backgroundColor="transparent" />
+      <SafeAreaProvider>
+        <StatusBar style="dark" translucent={true} />
         <SplashScreen onFinished={() => setShowSplash(false)} />
-      </>
-      // </ThemeProvider>
+        <NoInternetModal visible={!isConnected} />
+      </SafeAreaProvider>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      // <ThemeProvider>
-      <>
-        <StatusBar style="light" translucent backgroundColor="transparent" />
+      <SafeAreaProvider>
+        <StatusBar style="light" translucent={true} />
         <AuthNavigator onAuthenticated={handleAuthenticated} />
-      </>
-      // </ThemeProvider>
+        <NoInternetModal visible={!isConnected} />
+      </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
       {/* <PlayerProvider> */}
-      {/* <ThemeProvider> */}
       <UserProvider>
-        <StatusBar style="auto" translucent backgroundColor="transparent" />
+        <StatusBar style={statusBarStyle} />
         <RootNavigator onSignOut={handleSignOut} />
       </UserProvider>
-      {/* </ThemeProvider> */}
       {/* </PlayerProvider> */}
+      <NoInternetModal visible={!isConnected} />
     </SafeAreaProvider>
   );
 }
