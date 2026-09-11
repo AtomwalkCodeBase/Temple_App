@@ -138,7 +138,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
           event_type: eventType,
           event_date: dayjs(date).format('YYYY-MM-DD'),
           start_time: hasTime ? dayjs(time).format('HH:mm') : null,
-          recurrence_type: repeatMode, // 'NONE' | 'YEARLY'
+          recurrence_type: yearly ? 'YEARLY' : 'NONE',
           description,
           reminders: reminders.map((m) => ({ reminder_minutes: m })),
           participants: [],

@@ -50,7 +50,7 @@ export default function ProfileScreen({ stats = { events: 0, reminders: 0, strea
 
     const user = {
         name: profile?.first_name || 'Devotee',
-        username: profile?.phone ? `+${profile.phone}` : '',
+        username: profile?.phone ? `${profile.phone}` : '',
         avatar: profile?.avatar || null,
         phone: profile?.phone,
     };
