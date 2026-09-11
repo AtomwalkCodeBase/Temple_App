@@ -3,7 +3,7 @@
     "name": "Agam Mandira",
     "slug": "agam-mandira",
     "scheme": "com.atomwalk.templedevotee",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -66,6 +66,15 @@
           "recordAudioAndroid": false
         }
       ],
+
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+
       "expo-asset",
       "@react-native-vector-icons/ionicons",
       "expo-sharing"
