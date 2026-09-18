@@ -1,27 +1,30 @@
 // ProfileScreen.js
-import React, { useCallback, useState } from 'react';
-import {
-    View,
-    Text,
-    ScrollView,
-    Image,
-    Pressable,
-    StyleSheet,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, Image, Pressable, StyleSheet, Share, Modal } from 'react-native';
 import { theme, spacing, radius } from '../theme/theme';
+import { themes } from '../theme/theme1';
 import ConfirmModal from '../components/ConfirmModal';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { LANGUAGES } from './SettingsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Screen from '../components/Screen';
 import { useUser } from '../context/UserContext';
+import Ionicons from '@react-native-vector-icons/ionicons';
+import ResettableScrollView from '../components/ResettableScrollView';
+import Constants from 'expo-constants';
+
+const APP_SHARE_URL = ' https://play.google.com/store/apps/details?id=com.agam.app'; // TODO: replace with real link/deep link
+const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
 
 // Simple row for settings-style list items
-function Row({ icon, label, value, onPress, danger }) {
+function Row({ icon, label, value, onPress, danger, highlight }) {
     return (
         <Pressable style={styles.row} onPress={onPress}>
             <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>{icon}</Text>
+                <View style={[styles.iconWrap, highlight && styles.iconWrapHighlight]}>
+                    <Text style={styles.rowIcon}>{icon}</Text>
+                </View>
                 <Text style={[styles.rowLabel, danger && { color: theme.error }]}>
                     {label}
                 </Text>
@@ -34,15 +37,46 @@ function Row({ icon, label, value, onPress, danger }) {
     );
 }
 
-export default function ProfileScreen({ stats = { events: 0, reminders: 0, streak: 0 }, onSignOut, }) {
+export default function ProfileScreen({ onSignOut }) {
 
-    const navigation = useNavigation()
+    const navigation = useNavigation();
     const { profile } = useUser();
     const [showSignOut, setShowSignOut] = useState(false);
+
+    const [themeModalVisible, setThemeModalVisible] = useState(false);
+    const [activeThemeId, setActiveThemeId] = useState('logoAccurate');
+
+    useFocusEffect(
+        useCallback(() => {
+            AsyncStorage.getItem('app_theme').then((t) => {
+                if (t && themes[t]) {
+                    setActiveThemeId(t);
+                }
+            });
+        }, [])
+    );
+
+    const handleApplyTheme = async (tId) => {
+        setActiveThemeId(tId);
+        await AsyncStorage.setItem('app_theme', tId);
+        setThemeModalVisible(false);
+    };
 
     const handleSignOut = async () => {
         await AsyncStorage.removeItem('auth_token');
         onSignOut?.();
+    };
+
+    const handleInvite = async () => {
+        try {
+            await Share.share({
+                message: `I've been using Agam Mandira for daily panchang, tithis & festival reminders — thought you'd like it too. Download here: ${APP_SHARE_URL}`,
+                url: APP_SHARE_URL, // used on iOS
+                title: 'Try Agam Mandira',
+            });
+        } catch (e) {
+            console.warn(e);
+        }
     };
 
     const languageLabel = LANGUAGES.find((l) => l.code === profile?.language)?.label || '—';
@@ -52,95 +86,96 @@ export default function ProfileScreen({ stats = { events: 0, reminders: 0, strea
         name: profile?.first_name || 'Devotee',
         username: profile?.phone ? `${profile.phone}` : '',
         avatar: profile?.avatar || null,
-        phone: profile?.phone,
     };
 
     return (
         <Screen>
-            {/* Night-sky header, echoes the hero section */}
             <View style={styles.hero}>
-                <View style={styles.starRow}>
-                    <Text style={styles.star}>✦</Text>
-                    <Text style={styles.star}>✧</Text>
-                    <Text style={styles.star}>✦</Text>
+                <View style={styles.heroShapeOne} />
+                <View style={styles.heroShapeTwo} />
+                <View style={styles.heroDotGrid}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <View key={i} style={[styles.heroDot, { opacity: 0.15 + i * 0.08 }]} />
+                    ))}
                 </View>
 
-                <View style={styles.avatarWrap}>
-                    {user.avatar ? (
-                        <Image source={{ uri: user.avatar }} style={styles.avatar} />
-                    ) : (
-                        <View style={[styles.avatar, styles.avatarFallback]}>
-                            <Text style={styles.avatarInitial}>
-                                {user.name?.charAt(0)?.toUpperCase() || 'D'}
-                            </Text>
-                        </View>
-                    )}
+                <Pressable style={styles.settingsBtn} onPress={() => navigation.navigate('Settings')} hitSlop={10}>
+                    <Ionicons name="settings-outline" size={18} color={theme.skyMuted} />
+                </Pressable>
+
+                <View style={styles.avatarRing}>
+                    <View style={styles.avatarRingInner}>
+                        {user.avatar ? (
+                            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+                        ) : (
+                            <View style={[styles.avatar, styles.avatarFallback]}>
+                                <Text style={styles.avatarInitial}>
+                                    {user.name?.charAt(0)?.toUpperCase() || 'D'}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
                     <View style={styles.moonBadge}>
                         <Text style={styles.moonBadgeText}>🪔</Text>
                     </View>
                 </View>
 
                 <Text style={styles.name}>{user.name}</Text>
-                <Text style={styles.username}>{user.username || '--'}</Text>
 
-                {/* <Pressable style={styles.editBtn} onPress={onEditProfile}>
-                    <Text style={styles.editBtnText}>Edit Profile</Text>
-                </Pressable> */}
+                {!!user.username && (
+                    <View style={styles.phoneChip}>
+                        <Ionicons name="call-outline" size={12} color={theme.skyText} />
+                        <Text style={styles.phoneChipText}>{user.username}</Text>
+                    </View>
+                )}
             </View>
 
-            <ScrollView
+            <ResettableScrollView
                 style={styles.body}
                 contentContainerStyle={styles.bodyContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Devotional stats strip */}
-                {/* <View style={styles.statsCard}>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{stats.events}</Text>
-                        <Text style={styles.statLabel}>Personal Events</Text>
+                {/* Invite card — the star of the redesign */}
+                <Pressable style={styles.inviteCard} onPress={handleInvite}>
+                    <View style={styles.inviteIconWrap}>
+                        <Text style={styles.inviteIcon}>🎁</Text>
                     </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{stats.reminders}</Text>
-                        <Text style={styles.statLabel}>Reminders</Text>
-                    </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: theme.sacred }]}>
-                            {stats.streak}
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.inviteTitle}>Invite Friends & Family</Text>
+                        <Text style={styles.inviteSub}>
+                            Share tithis, festivals & reminders with people you care about
                         </Text>
-                        <Text style={styles.statLabel}>Day Streak</Text>
                     </View>
-                </View> */}
+                    <View style={styles.inviteArrow}>
+                        <Text style={styles.inviteArrowText}>
+                            <Ionicons name="arrow-forward-sharp" size={16} color="white" />
+                        </Text>
+                    </View>
+                </Pressable>
 
                 {/* Preferences */}
                 <Text style={styles.sectionTitle}>Preferences</Text>
                 <View style={styles.card}>
-                    <Row icon="🌐" label="Language" value={languageLabel} onPress={() => navigation.navigate('Settings')} />
+                    <Row icon="🌐" label="Language" value={languageLabel} onPress={() => navigation.navigate('Settings', { section: 'language' })} />
                     <View style={styles.divider} />
-                    <Row
-                        icon="📍"
-                        label="Panji / Location"
-                        value={panjiLabel}
-                        onPress={() => navigation.navigate('Settings')}
-                    />
+
+                    <Row icon="📍" label="Panji / Location" value={panjiLabel} onPress={() => navigation.navigate('Settings', { section: 'panji' })} />
+                    <View style={styles.divider} />
+
+                    <Row icon="🎨" label="Theme" value={themes[activeThemeId]?.label || 'Default'} onPress={() => setThemeModalVisible(true)} />
+                    <View style={styles.divider} />
+
+                    {/* <Row icon="🔔" label="Reminders" onPress={() => navigation.navigate('BulkReminders')} /> */}
                 </View>
 
-                {/* Discover */}
-                {/* <Text style={styles.sectionTitle}>Discover</Text>
+                {/* Support / About */}
+                <Text style={styles.sectionTitle}>Support</Text>
                 <View style={styles.card}>
-                    <Row icon="🔍" label="Explore Communities & Songs" onPress={() => navigation.navigate('Explore')} />
-                </View> */}
-
-                {/* My devotional activity */}
-                <Text style={styles.sectionTitle}>My Activity</Text>
-                <View style={styles.card}>
-                    <Row icon="🗓️" label="Personal Events" onPress={() => navigation.navigate('MyEventsScreen')} />
+                    <Row icon="💬" label="Send Feedback" onPress={handleInvite && (() => { })} />
                     <View style={styles.divider} />
-                    <Row icon="🔔" label="Set Reminders" onPress={() => navigation.navigate('BulkReminders')} />
+                    <Row icon="⭐" label="Rate the App" onPress={() => { }} />
                     <View style={styles.divider} />
-                    {/* <Row icon="🔕" label="Notification Settings" onPress={onNotifications} />
-                    <View style={styles.divider} /> */}
+                    <Row icon="ℹ️" label="About" value={`v${APP_VERSION}`} onPress={() => { }} />
                 </View>
 
                 {/* Sign out */}
@@ -149,7 +184,7 @@ export default function ProfileScreen({ stats = { events: 0, reminders: 0, strea
                 </View>
 
                 <Text style={styles.footerNote}>Agam Mandira · Your daily devotional companion</Text>
-            </ScrollView>
+            </ResettableScrollView>
 
             <ConfirmModal
                 visible={showSignOut}
@@ -164,6 +199,39 @@ export default function ProfileScreen({ stats = { events: 0, reminders: 0, strea
                 }}
                 onCancel={() => setShowSignOut(false)}
             />
+
+            <Modal
+                visible={themeModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setThemeModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.themeModalCard}>
+                        <Text style={styles.themeModalTitle}>Select Theme</Text>
+                        <ScrollView style={styles.themeList}>
+                            {Object.values(themes).map((t) => (
+                                <Pressable
+                                    key={t.id}
+                                    style={[styles.themeOption, activeThemeId === t.id && styles.themeOptionActive]}
+                                    onPress={() => handleApplyTheme(t.id)}
+                                >
+                                    <View style={[styles.themeColorPreview, { backgroundColor: t.colors.primary }]} />
+                                    <Text style={[styles.themeOptionText, activeThemeId === t.id && styles.themeOptionTextActive]}>
+                                        {t.label}
+                                    </Text>
+                                    {activeThemeId === t.id && (
+                                        <Ionicons name="checkmark" size={20} color={theme.accent} style={{ marginLeft: 'auto' }} />
+                                    )}
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                        <Pressable style={styles.themeModalClose} onPress={() => setThemeModalVisible(false)}>
+                            <Text style={styles.themeModalCloseText}>Close</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
         </Screen>
     );
 }
@@ -173,33 +241,42 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.surfaceAlt,
     },
-
-    // Hero
-    hero: {
-        backgroundColor: theme.sky,
-        paddingTop: spacing.xxl,
-        paddingBottom: spacing.xl,
+    username: {
+        color: theme.skyMuted,
+        fontSize: 13,
+        marginTop: 2,
+        marginBottom: spacing.base,
+    },
+    heroGlow: {
+        position: 'absolute',
+        top: -60,
+        width: 260,
+        height: 260,
+        borderRadius: 130,
+        backgroundColor: theme.skyLine,
+        opacity: 0.25,
+    },
+    heroTop: {
         alignItems: 'center',
-        borderBottomLeftRadius: radius.l,
-        borderBottomRightRadius: radius.l,
+        marginBottom: spacing.sm,
     },
     starRow: {
         flexDirection: 'row',
-        gap: spacing.lg,
-        marginBottom: spacing.sm,
+        alignItems: 'flex-end',
+        gap: spacing.md,
     },
     star: {
         color: theme.star,
         fontSize: 12,
     },
     avatarWrap: {
-        marginBottom: spacing.sm,
+        marginBottom: spacing.md,
     },
     avatar: {
-        width: 84,
-        height: 84,
+        width: 92,
+        height: 92,
         borderRadius: radius.pill,
-        borderWidth: 2,
+        borderWidth: 3,
         borderColor: theme.moon,
     },
     avatarFallback: {
@@ -209,15 +286,15 @@ const styles = StyleSheet.create({
     },
     avatarInitial: {
         color: theme.moon,
-        fontSize: 32,
+        fontSize: 34,
         fontWeight: '700',
     },
     moonBadge: {
         position: 'absolute',
         bottom: -2,
         right: -2,
-        width: 28,
-        height: 28,
+        width: 30,
+        height: 30,
         borderRadius: radius.pill,
         backgroundColor: theme.moon,
         justifyContent: 'center',
@@ -226,29 +303,25 @@ const styles = StyleSheet.create({
         borderColor: theme.sky,
     },
     moonBadgeText: {
-        fontSize: 13,
+        fontSize: 14,
     },
     name: {
         color: theme.skyText,
-        fontSize: 20,
+        fontSize: 21,
         fontWeight: '700',
     },
-    username: {
-        color: theme.skyMuted,
-        fontSize: 13,
-        marginTop: 2,
-        marginBottom: spacing.base,
-    },
-    editBtn: {
+    phoneChip: {
+        marginTop: spacing.xs,
         borderWidth: 1,
         borderColor: theme.skyChipBorder,
-        paddingVertical: spacing.xs,
-        paddingHorizontal: spacing.base,
+        backgroundColor: theme.sky,
+        paddingHorizontal: spacing.sm + 2,
+        paddingVertical: 3,
         borderRadius: radius.pill,
     },
-    editBtnText: {
-        color: theme.skyText,
-        fontSize: 13,
+    phoneChipText: {
+        color: theme.skyMuted,
+        fontSize: 12,
         fontWeight: '600',
     },
 
@@ -261,36 +334,51 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.xxl,
     },
 
-    // Stats
-    statsCard: {
+    // Invite card
+    inviteCard: {
         flexDirection: 'row',
-        backgroundColor: theme.surface,
+        alignItems: 'center',
+        gap: spacing.sm,
+        backgroundColor: theme.sacredTint,
         borderRadius: radius.l,
         borderWidth: 1,
-        borderColor: theme.border,
+        borderColor: theme.sacred + '55',
         padding: spacing.base,
-        marginTop: -spacing.xl,
+        marginTop: spacing.xs,
         marginBottom: spacing.lg,
     },
-    statItem: {
-        flex: 1,
+    inviteIconWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: radius.pill,
+        backgroundColor: theme.surface,
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    statDivider: {
-        width: 1,
-        backgroundColor: theme.border,
-        marginVertical: spacing.xs,
-    },
-    statValue: {
-        color: theme.accent,
-        fontSize: 18,
+    inviteIcon: { fontSize: 20 },
+    inviteTitle: {
+        color: theme.sacredText,
+        fontSize: 15,
         fontWeight: '700',
     },
-    statLabel: {
-        color: theme.textMuted,
-        fontSize: 11,
+    inviteSub: {
+        color: theme.sacredMuted,
+        fontSize: 12,
         marginTop: 2,
-        textAlign: 'center',
+        lineHeight: 16,
+    },
+    inviteArrow: {
+        width: 30,
+        height: 30,
+        borderRadius: radius.pill,
+        backgroundColor: theme.sacred,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    inviteArrowText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
     },
 
     // Sections
@@ -314,13 +402,13 @@ const styles = StyleSheet.create({
     divider: {
         height: 1,
         backgroundColor: theme.border,
-        marginLeft: spacing.base + 24 + spacing.sm, // align past icon
+        marginLeft: spacing.base + 32 + spacing.sm, // align past icon wrap
     },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: spacing.md,
+        paddingVertical: spacing.sm + 2,
         paddingHorizontal: spacing.base,
     },
     rowLeft: {
@@ -328,10 +416,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: spacing.sm,
     },
+    iconWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: radius.md,
+        backgroundColor: theme.accentTint,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconWrapHighlight: {
+        backgroundColor: theme.sacredTint,
+    },
     rowIcon: {
-        fontSize: 18,
-        width: 24,
-        textAlign: 'center',
+        fontSize: 15,
     },
     rowLabel: {
         color: theme.text,
@@ -357,5 +454,176 @@ const styles = StyleSheet.create({
         color: theme.textMuted,
         fontSize: 11,
         marginTop: spacing.sm,
+    },
+
+    hero: {
+        backgroundColor: theme.accentDeep,
+        paddingTop: spacing.xxl + spacing.sm,
+        paddingBottom: spacing.xxl,
+        alignItems: 'center',
+        borderBottomLeftRadius: radius.l * 2,
+        borderBottomRightRadius: radius.l * 2,
+        overflow: 'hidden',
+    },
+    heroShapeOne: {
+        position: 'absolute',
+        top: -90,
+        right: -60,
+        width: 220,
+        height: 220,
+        borderRadius: 110,
+        backgroundColor: theme.accent,
+        opacity: 0.35,
+    },
+    heroShapeTwo: {
+        position: 'absolute',
+        bottom: -70,
+        left: -50,
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        backgroundColor: theme.sky,
+        opacity: 0.4,
+    },
+    heroDotGrid: {
+        position: 'absolute',
+        top: spacing.xl,
+        left: spacing.lg,
+        flexDirection: 'row',
+        gap: 6,
+    },
+    heroDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: theme.star,
+    },
+    settingsBtn: {
+        position: 'absolute',
+        top: spacing.xl,
+        right: spacing.lg,
+        width: 34,
+        height: 34,
+        borderRadius: radius.pill,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarRing: {
+        width: 106,
+        height: 106,
+        borderRadius: radius.pill,
+        borderWidth: 2,
+        borderColor: theme.moon,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.md,
+    },
+    avatarRingInner: {
+        width: 94,
+        height: 94,
+        borderRadius: radius.pill,
+        padding: 3,
+        backgroundColor: theme.accentDeep,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    moonBadge: {
+        position: 'absolute',
+        bottom: 4,
+        right: 0,
+        width: 28,
+        height: 28,
+        borderRadius: radius.pill,
+        backgroundColor: theme.moon,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: theme.accentDeep,
+    },
+    phoneChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginTop: spacing.sm,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.25)',
+        paddingHorizontal: spacing.sm + 2,
+        paddingVertical: 5,
+        borderRadius: radius.pill,
+    },
+    phoneChipText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(4,44,83,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing.xl,
+    },
+    themeModalCard: {
+        width: '100%',
+        maxWidth: 360,
+        backgroundColor: theme.surface,
+        borderRadius: radius.l,
+        padding: spacing.lg,
+        maxHeight: '80%',
+    },
+    themeModalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: theme.text,
+        marginBottom: spacing.md,
+        textAlign: 'center',
+    },
+    themeList: {
+        marginBottom: spacing.md,
+    },
+    themeOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.border,
+    },
+    themeOptionActive: {
+        backgroundColor: theme.surfaceAlt,
+        borderRadius: radius.sm,
+        borderBottomWidth: 0,
+    },
+    themeColorPreview: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        marginRight: spacing.sm,
+        borderWidth: 1,
+        borderColor: theme.border,
+    },
+    themeOptionText: {
+        fontSize: 15,
+        color: theme.text,
+    },
+    themeOptionTextActive: {
+        fontWeight: '700',
+        color: theme.accent,
+    },
+    themeModalClose: {
+        alignItems: 'center',
+        paddingVertical: spacing.md,
+        backgroundColor: theme.surfaceAlt,
+        borderRadius: radius.m,
+        marginTop: spacing.sm,
+    },
+    themeModalCloseText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.text,
     },
 });

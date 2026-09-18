@@ -20,6 +20,8 @@ import Screen from '../components/Screen';
 import { useUser } from '../context/UserContext';
 import MonthAgendaDrawer from '../components/MonthAgendaDrawer';
 import { EVENT_TYPES } from '../constants/constant';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { themes } from '../theme/theme1';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CELL_SIZE = Math.floor((SCREEN_WIDTH - 32) / 7);
@@ -42,6 +44,45 @@ export default function MonthScreen({ navigation, route }) {
   const [upcomingFestivals, setUpcomingFestivals] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [activeTheme, setActiveTheme] = useState(theme);
+
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem('app_theme').then((t) => {
+        if (t && themes[t]) {
+           const tc = themes[t].colors;
+           setActiveTheme({
+             ...theme,
+             primary: tc.primary,
+             skyText: tc.textOnPrimary,
+             accentBoldTint: tc.accentMuted,
+             accentBold: tc.accent,
+             skyChipBorder: tc.primaryDark,
+             moon: tc.accent,
+             skyMuted: tc.textMuted,
+             sky: tc.heroSky,
+             textMuted: tc.textMuted,
+             accentTint: tc.infoMuted,
+             accent: tc.info,
+             sacredTint: tc.warningMuted,
+             sacredMuted: tc.textMuted,
+             sacredText: tc.text,
+             sacred: tc.warning,
+             text: tc.text,
+             surfaceAlt: tc.surfaceAlt,
+             border: tc.border,
+             accentDeep: tc.primaryDark,
+             surface: tc.surface,
+           });
+        } else {
+            setActiveTheme(theme);
+        }
+      });
+    }, [])
+  );
+
+  const styles = useMemo(() => getStyles(activeTheme), [activeTheme]);
+
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -55,6 +96,15 @@ export default function MonthScreen({ navigation, route }) {
     : null;
 
   // ---- personal events (list) ----
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setDrawerOpen(false);
+      };
+    }, [])
+  );
+
   useFocusEffect(
     useCallback(() => {
       listUserEvents()
@@ -188,18 +238,18 @@ export default function MonthScreen({ navigation, route }) {
 
   return (
     <Screen edges={['top', 'left', 'right']}>
-      <View style={{ flex: 1, backgroundColor: theme.surface }}>
+      <View style={{ flex: 1, backgroundColor: activeTheme.surface }}>
         {/* ---- Header: nav + view toggle ---- */}
         <View style={styles.header}>
           <Pressable onPress={() => (viewMode === 'month' ? changeMonth(-1) : changeWeek(-1))} hitSlop={10}>
-            <Ionicons name="chevron-back" size={20} color={theme.skyMuted} />
+            <Ionicons name="chevron-back" size={20} color={activeTheme.accentBoldTint} />
           </Pressable>
           <View style={{ alignItems: 'center' }}>
             <Text style={styles.headerTitle}>{headerLabel}</Text>
             <Text style={styles.headerSub}>{locationName || 'Location'}</Text>
           </View>
           <Pressable onPress={() => (viewMode === 'month' ? changeMonth(1) : changeWeek(1))} hitSlop={10}>
-            <Ionicons name="chevron-forward" size={20} color={theme.skyMuted} />
+            <Ionicons name="chevron-forward" size={20} color={activeTheme.accentBoldTint} />
           </Pressable>
         </View>
 
@@ -227,7 +277,7 @@ export default function MonthScreen({ navigation, route }) {
             </Pressable>
 
             <Pressable style={styles.todayBtn} onPress={() => setDrawerOpen(true)}>
-              <Ionicons name="list" size={14} color={theme.skyText} />
+              <Ionicons name="list" size={14} color={activeTheme.skyText} />
             </Pressable>
           </View>
         </View>
@@ -239,7 +289,7 @@ export default function MonthScreen({ navigation, route }) {
           onSwipe={(dir) => (viewMode === 'month' ? changeMonth(dir) : changeWeek(dir))}
         >
           {loading && monthCells.length === 0 ? (
-            <ActivityIndicator style={{ marginVertical: 30 }} color={theme.accent} />
+            <ActivityIndicator style={{ marginVertical: 30 }} color={activeTheme.accent} />
           ) : (
             <>
               <View style={styles.weekdayRow}>
@@ -286,8 +336,8 @@ export default function MonthScreen({ navigation, route }) {
                           tithiNumber={d.tithi_number}
                           paksha={d.paksha}
                           size={viewMode === 'month' ? 20 : 26}
-                          moonColor={d.has_festival ? theme.sacred : '#D3D1C7'}
-                          skyColor={isSelected ? theme.accentTint : theme.surface}
+                          moonColor={d.has_festival ? activeTheme.sacred : '#D3D1C7'}
+                          skyColor={isSelected ? activeTheme.accentTint : activeTheme.surface}
                         />
                         <Text style={[
                           styles.cellDate,
@@ -310,10 +360,10 @@ export default function MonthScreen({ navigation, route }) {
 
         <View style={styles.legend}>
           <Text style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: theme.sacred }]} /> Festival
+            <View style={[styles.dot, { backgroundColor: activeTheme.sacred }]} /> Festival
           </Text>
           <Text style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: theme.accent }]} /> My event
+            <View style={[styles.dot, { backgroundColor: activeTheme.accent }]} /> My event
           </Text>
         </View>
 
@@ -324,6 +374,8 @@ export default function MonthScreen({ navigation, route }) {
             detail={selectedDetail}
             loading={detailLoading}
             dayEvents={selectedDayEvents}
+            activeTheme={activeTheme}
+            styles={styles}
             onFestivalPress={(code) => navigation.navigate('EventDetail', { code, date: selectedDate })}
             onEventPress={(userEventId) => navigation.navigate('EventDetail', { userEventId })}
             onAddEvent={() => navigation.navigate('AddEvent', { prefillDate: selectedDate })}
@@ -379,7 +431,7 @@ function SwipeGrid({ mode, onSwipe, children }) {
   );
 }
 
-function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPress, onAddEvent }) {
+function DayPanel({ date, detail, loading, dayEvents, activeTheme, styles, onFestivalPress, onEventPress, onAddEvent }) {
   const parseTime = (t) => dayjs(t, 'hh:mm A');
   const muhurtas = detail?.extra
     ? Object.entries(detail.extra).sort(([, a], [, b]) => parseTime(a.start_time).diff(parseTime(b.start_time)))
@@ -452,7 +504,7 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
       <Text style={styles.panelDate}>{dayjs(date).format('dddd, D MMMM')}</Text>
 
       {loading || !detail ? (
-        <ActivityIndicator color={theme.accent} style={{ paddingVertical: 20 }} />
+        <ActivityIndicator color={activeTheme.accent} style={{ paddingVertical: 20 }} />
       ) : (
         <>
           <Text style={styles.panelTithi}>
@@ -488,7 +540,7 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
                   f.singleLine && <Text style={styles.festivalTiming}>{f.singleLine}</Text>
                 )}
               </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.sacredMuted} />
+              <Ionicons name="chevron-forward" size={16} color={activeTheme.sacredMuted} />
             </Pressable>
           ))}
 
@@ -501,7 +553,7 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
                   <View style={styles.eventDot} />
                   <Text style={styles.userEventText}>{e.title || e.name}</Text>
                   <Text style={[styles.chipText, styles.chipActive]}>({getEventTypeLabel(e.event_type)})</Text>
-                  <Ionicons name="chevron-forward" size={13} color={theme.accent} />
+                  <Ionicons name="chevron-forward" size={13} color={activeTheme.accent} />
                 </Pressable>
               ))}
             </View>
@@ -521,7 +573,7 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
               <View style={styles.muhurtaGrid}>
                 {auspicious.map(([name, m]) => (
                   <View key={name} style={[styles.muhurtaChip, styles.muhurtaChipGood]}>
-                    <Ionicons name="checkmark-circle" size={13} color={theme.sacred} />
+                    <Ionicons name="checkmark-circle" size={13} color={activeTheme.sacred} />
                     <View style={{ marginLeft: 6 }}>
                       <Text style={styles.muhurtaName}>{name}</Text>
                       <Text style={styles.muhurtaTime}>{m.start_time} – {m.end_time}</Text>
@@ -538,7 +590,7 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
                   <View style={styles.muhurtaGrid}>
                     {inauspicious.map(([name, m]) => (
                       <View key={name} style={[styles.muhurtaChip, styles.muhurtaChipBad]}>
-                        <Ionicons name="close-circle" size={13} color={theme.textMuted} />
+                        <Ionicons name="close-circle" size={13} color={activeTheme.textMuted} />
                         <View style={{ marginLeft: 6 }}>
                           <Text style={styles.muhurtaName}>{name}</Text>
                           <Text style={styles.muhurtaTime}>{m.start_time} – {m.end_time}</Text>
@@ -556,16 +608,16 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme) => StyleSheet.create({
   header: {
-    backgroundColor: theme.sky, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8,
+    backgroundColor: theme.primary, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   headerTitle: { color: theme.skyText, fontSize: 16, fontWeight: '600' },
-  headerSub: { color: theme.skyMuted, fontSize: 11 },
+  headerSub: { color: theme.accentBold, fontSize: 11 },
 
   toggleRow: {
-    backgroundColor: theme.sky, paddingHorizontal: 16, paddingBottom: 12,
+    backgroundColor: theme.primary, paddingHorizontal: 16, paddingBottom: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   btnRow: { flexDirection: 'row', gap: spacing.sm },
@@ -578,7 +630,7 @@ const styles = StyleSheet.create({
   segmentLabel: { color: theme.skyMuted, fontSize: 12, fontWeight: '600' },
   segmentLabelActive: { color: theme.sky },
   todayBtn: {
-    borderWidth: 1, borderColor: theme.skyChipBorder, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: theme.accentBoldTint, borderRadius: radius.pill,
     paddingHorizontal: 12, paddingVertical: 5,
   },
   todayBtnText: { color: theme.skyText, fontSize: 12, fontWeight: '600' },

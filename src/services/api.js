@@ -65,6 +65,7 @@ export const getAvailableLocations = () => request('/locations/available/');
 // GET /events/upcoming/?days=30
 export const getUpcomingEvents = (days = 30) => request(`/events/upcoming/?days=${days}`);
 export const getMonthsEvents = (month) => request(`/events/month/${month}/`);
+export const getRecurringEventsType = (type) => request(`/events/recurring/${type}/`);
 
 // POST /user-events/
 // payload: { title, event_type, event_date, start_time?, recurrence_type,
@@ -80,6 +81,12 @@ export const trackReligiousEvent = (code, payload = {}) => request(`/religious-e
 // POST /religious-events/track-by-type/ -> bulk-subscribe, e.g. all Ekadashi in a year
 export const trackByEventType = (eventType, year, reminderMinutes) =>
   request('/religious-events/track-by-type/', {
+    method: 'POST',
+    body: { event_type: eventType, year, reminder_minutes: reminderMinutes },
+  });
+
+export const trackByEventSelected = (eventIds, eventType, year, reminderMinutes) =>
+  request(`/religious-events/track-by-selected/${eventIds.join('|')}/`, {
     method: 'POST',
     body: { event_type: eventType, year, reminder_minutes: reminderMinutes },
   });

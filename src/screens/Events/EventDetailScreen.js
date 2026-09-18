@@ -13,14 +13,14 @@ import dayjs from 'dayjs';
 import {
   getReligiousEventOccurrence, trackReligiousEvent, untrackReligiousEvent,
   getUserEvent, deleteUserEvent, addParticipant,
-} from '../services/api';
-import { scheduleEventReminders, cancelEventReminders } from '../services/notifications';
-import { theme, radius, fontSize } from '../theme/theme';
-import Screen from '../components/Screen';
-import { ShareComposerModal } from '../components/ShareComposerModal';
-import { MESSAGE_STYLES, REMINDER_OPTIONS, SHARE_TEMPLATES } from '../constants/constant';
-import ConfirmModal from '../components/ConfirmModal';
-import StatusModal from '../components/StatusModal';
+} from '../../services/api';
+import { scheduleEventReminders, cancelEventReminders } from '../../services/notifications';
+import { theme, radius, fontSize } from '../../theme/theme';
+import Screen from '../../components/Screen';
+import { ShareComposerModal } from '../../components/ShareComposerModal';
+import { MESSAGE_STYLES, REMINDER_OPTIONS, SHARE_TEMPLATES } from '../../constants/constant';
+import ConfirmModal from '../../components/ConfirmModal';
+import StatusModal from '../../components/StatusModal';
 
 export default function EventDetailScreen({ navigation, route }) {
 

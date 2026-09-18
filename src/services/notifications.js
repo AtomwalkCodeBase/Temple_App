@@ -92,19 +92,20 @@ export async function scheduleEventReminders(event, reminderMinutes) {
   const ok = await ensurePermission();
   if (!ok) return [];
 
-  const anchor = dayjs(
-    `${event.event_date} ${event.start_time || '07:00'}`, 'YYYY-MM-DD HH:mm');
+  const anchor = dayjs(`${event.event_date} ${event.start_time || '07:00'}`, 'YYYY-MM-DD HH:mm');
 
   const ids = [];
-  for (const minutes of reminderMinutes) {
+  const effectiveReminderMinutes = reminderMinutes.length === 0 && event.start_time ? [0] : reminderMinutes;
+
+  for (const minutes of effectiveReminderMinutes) {
     const fireAt = anchor.subtract(minutes, 'minute');
+
     if (fireAt.isBefore(dayjs())) continue;   // never schedule in the past
+
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: event.title,
-        body: minutes === 0
-          ? `Today: ${event.title}`
-          : `${event.title} — ${humanOffset(minutes)} from now`,
+        body: minutes === 0 ? `Today: ${event.title}` : `${event.title} — ${humanOffset(minutes)} from now`,
         data: { userEventId: event.id },
       },
       trigger: {
@@ -115,7 +116,7 @@ export async function scheduleEventReminders(event, reminderMinutes) {
     });
     ids.push(id);
   }
-  // Remember ids so we can cancel on edit/delete
+
   await AsyncStorage.setItem(`notif:${event.id}`, JSON.stringify(ids));
   return ids;
 }

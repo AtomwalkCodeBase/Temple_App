@@ -74,7 +74,12 @@
           "microphonePermission": false
         }
       ],
-
+       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
+        }
+      ],
       "expo-asset",
       "@react-native-vector-icons/ionicons",
       "expo-sharing"

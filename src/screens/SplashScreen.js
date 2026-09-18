@@ -21,7 +21,7 @@ export default function SplashScreen({ onFinished }) {
         accessibilityLabel="App logo"
       />
       <AppText variant="h2" style={{ marginTop: spacing.lg }}>
-        Temple Devotee
+        Agam Mandira
       </AppText>
       <AppText variant="bodySmall" color="textSecondary" style={{ marginTop: spacing.xs }}>
         Your spiritual calendar

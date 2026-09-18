@@ -2,7 +2,7 @@
 // source, language, plus sign out. This is what unblocks getGreeting()
 // and LOCATION_ID hardcoding across Home/Month from actually reflecting
 // a real per-user choice.
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View, Text, Pressable, ScrollView, ActivityIndicator,
   StyleSheet, Alert,
@@ -50,8 +50,10 @@ export const LANGUAGES = [
   { code: 'brx', label: 'बड़ो (Bodo)' },
 ];
 
-export default function SettingsScreen({ onSignOut }) {
-  const { profile, refreshProfile } = useUser();
+export default function SettingsScreen({ onSignOut, route }) {
+  const { profile, refreshProfile, selectedLocation, setSelectedLocation } = useUser();
+  const scrollViewRef = useRef(null);
+  const sectionOffsets = useRef({});
   const [calendars, setCalendars] = useState([]);
   const [locations, setLocations] = useState([]);
   const [saving, setSaving] = useState(null);
@@ -71,10 +73,31 @@ export default function SettingsScreen({ onSignOut }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const scrollToRequestedSection = useCallback(() => {
+    const section = route?.params?.section;
+    const offset = sectionOffsets.current[section];
+
+    if (offset !== undefined) {
+      scrollViewRef.current?.scrollTo({ y: Math.max(offset - 8, 0), animated: true });
+    }
+  }, [route?.params?.section]);
+
+  useFocusEffect(useCallback(() => {
+    requestAnimationFrame(scrollToRequestedSection);
+  }, [scrollToRequestedSection]));
+
+  const handleSectionLayout = useCallback((section, event) => {
+    sectionOffsets.current[section] = event.nativeEvent.layout.y;
+    scrollToRequestedSection();
+  }, [scrollToRequestedSection]);
+
   const save = async (field, value) => {
     setSaving(field);
     try {
       await updateMyProfile({ [field]: value });
+      if (field === 'preferred_location') {
+        setSelectedLocation(value);
+      }
       await refreshProfile();
     } catch (e) {
       Alert.alert('Could not save', e.message);
@@ -104,6 +127,9 @@ export default function SettingsScreen({ onSignOut }) {
     }
 
     await AsyncStorage.removeItem('auth_token');
+    await AsyncStorage.removeItem('entryPath');
+    await AsyncStorage.removeItem('autoLocationPending');
+    await AsyncStorage.removeItem('selectedLocation');
     onSignOut();
   };
 
@@ -122,10 +148,10 @@ export default function SettingsScreen({ onSignOut }) {
   return (
     <Screen>
 
-      <ScrollView style={{ flex: 1, backgroundColor: theme.surface }}>
+      <ScrollView ref={scrollViewRef} style={{ flex: 1, backgroundColor: theme.surface }}>
         <Header />
 
-        <Section title="Panji source">
+        <Section title="Panji source" onLayout={(event) => handleSectionLayout('panji', event)}>
           {calendars.map((cal) => (
             <OptionRow
               key={cal.id}
@@ -147,7 +173,7 @@ export default function SettingsScreen({ onSignOut }) {
               key={loc.id}
               label={loc.name}
               sublabel={loc.country}
-              selected={profile.preferred_location === loc.id}
+              selected={(selectedLocation || profile.preferred_location) === loc.id}
               busy={saving === 'preferred_location'}
               onPress={() => save('preferred_location', loc.id)}
             />
@@ -157,7 +183,7 @@ export default function SettingsScreen({ onSignOut }) {
           )}
         </Section>
 
-        <Section title="Language">
+        <Section title="Language" onLayout={(event) => handleSectionLayout('language', event)}>
           {LANGUAGES.map((lang) => (
             <OptionRow
               key={lang.code}
@@ -202,9 +228,9 @@ function Header() {
   );
 }
 
-function Section({ title, children }) {
+function Section({ title, children, onLayout }) {
   return (
-    <View style={{ marginTop: 16 }}>
+    <View style={{ marginTop: 16 }} onLayout={onLayout}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.sectionCard}>{children}</View>
     </View>

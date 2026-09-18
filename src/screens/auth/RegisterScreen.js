@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, Pressable, Alert,
   StyleSheet, ActivityIndicator, ScrollView,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { REGISTER_URL } from '../../services/api';
@@ -13,6 +14,7 @@ import { Eye, EyeClosed, Moon, Sparkles } from 'lucide-react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function RegisterScreen({ onRegistered, onGoToLogin }) {
   const insets = useSafeAreaInsets();
@@ -57,6 +59,8 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
       await AsyncStorage.setItem('auth_token', data.token);
       await SecureStore.setItemAsync('saved_username', username);
       await SecureStore.setItemAsync('saved_password', password);
+      await AsyncStorage.setItem('entryPath', 'register');
+      await AsyncStorage.setItem('autoLocationPending', 'true');
       if (data.invite_applied) {
         setShowModal(true);
         setModalData({ title: "Welcome!", message: `Invite code applied — you're on the ${data.tier} plan.` })
@@ -73,7 +77,7 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
   return (
     <ScrollView contentContainerStyle={[styles.screen, { paddingBottom: insets.bottom + spacing.sm }]}>
       {/* Night sky hero */}
-      <View style={styles.hero}>
+      {/* <View style={styles.hero}>
         <View style={styles.starRow}>
           <View style={[styles.star, { top: 6, left: '18%' }]} />
           <View style={[styles.star, { top: 26, left: '72%' }]} />
@@ -86,7 +90,15 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
         </View>
         <Text style={styles.title}>{getPreLoginGreeting()}</Text>
         <Text style={styles.subtitle}>Begin your journey with Agam Mandira</Text>
-      </View>
+      </View> */}
+
+      <LinearGradient colors={[theme.primary, 'transparent']} style={styles.hero}>
+        <View style={styles.logoCircle}>
+          <Image source={require('../../assets/new_icon.png')} style={styles.logo} resizeMode="contain" />
+        </View>
+        <Text style={styles.title}>{getPreLoginGreeting()}</Text>
+        <Text style={styles.subtitle}>Begin your journey with Agam Mandira</Text>
+      </LinearGradient>
 
       {/* Daylight form card */}
       <View style={styles.card}>
@@ -172,7 +184,7 @@ const styles = StyleSheet.create({
 
   // --- Hero: night sky ---
   hero: {
-    backgroundColor: theme.sky,
+    // backgroundColor: theme.primary,
     paddingTop: 64,
     paddingBottom: 40,
     paddingHorizontal: spacing.xl,
@@ -180,6 +192,26 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: radius.lg,
     borderBottomRightRadius: radius.lg,
     overflow: 'hidden',
+  },
+  logoCircle: {
+    width: 84, height: 84, borderRadius: 42,
+    backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  logo: { width: 66, height: 66 },
+  title: {
+    color: theme.text,
+    fontSize: fontSize.xxl,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: theme.text,
+    fontSize: fontSize.md,
+    textAlign: 'center',
+    marginTop: 4,
   },
   starRow: { ...StyleSheet.absoluteFillObject },
   star: {
@@ -194,18 +226,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.md,
     borderWidth: 1, borderColor: theme.skyChipBorder,
-  },
-  title: {
-    color: theme.skyText,
-    fontSize: fontSize.xxl,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: theme.skyMuted,
-    fontSize: fontSize.md,
-    textAlign: 'center',
-    marginTop: 4,
   },
 
   // --- Card: daylight form ---

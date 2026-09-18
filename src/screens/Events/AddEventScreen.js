@@ -9,12 +9,13 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
-import { createUserEvent, trackReligiousEvent, updateUserEvent } from '../services/api';
-import { cancelEventReminders, scheduleEventReminders } from '../services/notifications';
-import { theme, radius, spacing } from '../theme/theme';
-import Screen from '../components/Screen';
-import { EVENT_TYPES, REMINDER_OPTIONS } from '../constants/constant';
-import StatusModal from '../components/StatusModal';
+import { createUserEvent, trackReligiousEvent, updateUserEvent } from '../../services/api';
+import { cancelEventReminders, scheduleEventReminders } from '../../services/notifications';
+import { theme, radius, spacing } from '../../theme/theme';
+import Screen from '../../components/Screen';
+import { EVENT_TYPES, REMINDER_OPTIONS } from '../../constants/constant';
+import StatusModal from '../../components/StatusModal';
+import ResettableScrollView from '../../components/ResettableScrollView';
 
 export default function AddEventScreen({ navigation, route, onSaved, }) {
   const params = route?.params ?? {};
@@ -171,6 +172,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
 
   return (
     <Screen edges={['top', 'left', 'right']}>
+      {/* <ResettableScrollView> */}
       <Header title={editing ? "Edit Event" : "Add Events"} />
       <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16 }}>
         {track && (
@@ -298,6 +300,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
         onRequestClose={() => setModalDetails({ visible: false, title: "", message: "" })}
         duration={4000}
       />
+      {/* </ResettableScrollView> */}
     </Screen>
   );
 }

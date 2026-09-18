@@ -4,9 +4,8 @@
 // home indicator / gesture bar, which raw Views ignore.
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// import { useTheme } from '../theme/ThemeContext';
 import { theme } from '../theme/theme';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
 /**
  * edges: which sides to pad for safe area.
@@ -16,12 +15,9 @@ import { useColorScheme } from 'react-native';
  *    them): pass edges={['top', 'bottom', 'left', 'right']}
  */
 export default function Screen({ children, style, edges = ['top', 'left', 'right'] }) {
-  const scheme = useColorScheme();
-  const isDarkMode = scheme === 'dark';
-
-  const statusBarColor = isDarkMode ? theme.surfaceAlt : '#042C53';
   return (
-    <SafeAreaView edges={edges} style={[{ flex: 1, backgroundColor: statusBarColor }, style]}>
+    <SafeAreaView edges={edges} style={[{ flex: 1, backgroundColor: theme.surfaceAlt }, style]}>
+      <StatusBar style="dark" />
       {children}
     </SafeAreaView>
   );
