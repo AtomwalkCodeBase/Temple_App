@@ -3,7 +3,7 @@
     "name": "Agam Mandira",
     "slug": "agam-mandira",
     "scheme": "com.atomwalk.templedevotee",
-    "version": "1.0.4",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -21,6 +21,9 @@
     },
     "android": {
       "package": "com.agam.app",
+        "blockedPermissions": [
+          "android.permission.ACCESS_FINE_LOCATION"
+        ],
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/icon.png",
         "backgroundColor": "#FCFAF6"
@@ -77,7 +80,7 @@
        [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
         }
       ],
       "expo-asset",

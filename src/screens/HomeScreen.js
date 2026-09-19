@@ -90,7 +90,7 @@ export default function HomeScreen({ navigation }) {
             const pos =
               (await Location.getLastKnownPositionAsync()) ||
               (await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced,
+                accuracy: Location.Accuracy.Balanced
               }));
             // console.log('[autoLoc] position', pos?.coords);
 
