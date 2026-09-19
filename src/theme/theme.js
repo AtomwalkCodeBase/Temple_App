@@ -3,13 +3,18 @@
 // of Home, and the calm warm-ivory surface everywhere else -- same family
 // as the rest of the app, just with a devotional night-sky accent piece.
 export const theme = {
-  primary: '#A00000',
+  primary: "#D9772E",
   // primary: '#FF3B3B',
+  primaryDark: "#B85F1F",
   primaryTint: '#F9E5E5',
-  secondary: '#FF3B3B',
+  secondary: "#8B3A3A",
   secondaryTint: '#FFEAEA',
-  accentBold: '#FFD700',
+  accentBold: "#8B3A3A",
   accentBoldTint: '#FFF9E0',
+
+  text: "#33281F",
+  textMuted: "#7A6A5C",
+  textOnPrimary: "#FFFFFF",
   // Night sky (hero)
   sky: '#042C53',
   skyText: '#E6F1FB',

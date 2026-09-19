@@ -1,11 +1,9 @@
 // ProfileScreen.js
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Image, Pressable, StyleSheet, Share, Modal } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, Share } from 'react-native';
 import { theme, spacing, radius } from '../theme/theme';
-import { themes } from '../theme/theme1';
 import ConfirmModal from '../components/ConfirmModal';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { LANGUAGES } from './SettingsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Screen from '../components/Screen';
@@ -42,25 +40,6 @@ export default function ProfileScreen({ onSignOut }) {
     const navigation = useNavigation();
     const { profile } = useUser();
     const [showSignOut, setShowSignOut] = useState(false);
-
-    const [themeModalVisible, setThemeModalVisible] = useState(false);
-    const [activeThemeId, setActiveThemeId] = useState('logoAccurate');
-
-    useFocusEffect(
-        useCallback(() => {
-            AsyncStorage.getItem('app_theme').then((t) => {
-                if (t && themes[t]) {
-                    setActiveThemeId(t);
-                }
-            });
-        }, [])
-    );
-
-    const handleApplyTheme = async (tId) => {
-        setActiveThemeId(tId);
-        await AsyncStorage.setItem('app_theme', tId);
-        setThemeModalVisible(false);
-    };
 
     const handleSignOut = async () => {
         await AsyncStorage.removeItem('auth_token');
@@ -99,9 +78,9 @@ export default function ProfileScreen({ onSignOut }) {
                     ))}
                 </View>
 
-                <Pressable style={styles.settingsBtn} onPress={() => navigation.navigate('Settings')} hitSlop={10}>
+                {/* <Pressable style={styles.settingsBtn} onPress={() => navigation.navigate('Settings')} hitSlop={10}>
                     <Ionicons name="settings-outline" size={18} color={theme.skyMuted} />
-                </Pressable>
+                </Pressable> */}
 
                 <View style={styles.avatarRing}>
                     <View style={styles.avatarRingInner}>
@@ -114,9 +93,6 @@ export default function ProfileScreen({ onSignOut }) {
                                 </Text>
                             </View>
                         )}
-                    </View>
-                    <View style={styles.moonBadge}>
-                        <Text style={styles.moonBadgeText}>🪔</Text>
                     </View>
                 </View>
 
@@ -162,21 +138,21 @@ export default function ProfileScreen({ onSignOut }) {
                     <Row icon="📍" label="Panji / Location" value={panjiLabel} onPress={() => navigation.navigate('Settings', { section: 'panji' })} />
                     <View style={styles.divider} />
 
-                    <Row icon="🎨" label="Theme" value={themes[activeThemeId]?.label || 'Default'} onPress={() => setThemeModalVisible(true)} />
-                    <View style={styles.divider} />
+                    {/* <Row icon="🎨" label="Theme" value={themes[activeThemeId]?.label || 'Default'} onPress={() => setThemeModalVisible(true)} />
+                    <View style={styles.divider} /> */}
 
                     {/* <Row icon="🔔" label="Reminders" onPress={() => navigation.navigate('BulkReminders')} /> */}
                 </View>
 
                 {/* Support / About */}
-                <Text style={styles.sectionTitle}>Support</Text>
+                {/* <Text style={styles.sectionTitle}>Support</Text>
                 <View style={styles.card}>
                     <Row icon="💬" label="Send Feedback" onPress={handleInvite && (() => { })} />
                     <View style={styles.divider} />
                     <Row icon="⭐" label="Rate the App" onPress={() => { }} />
                     <View style={styles.divider} />
                     <Row icon="ℹ️" label="About" value={`v${APP_VERSION}`} onPress={() => { }} />
-                </View>
+                </View> */}
 
                 {/* Sign out */}
                 <View style={styles.card}>
@@ -199,39 +175,6 @@ export default function ProfileScreen({ onSignOut }) {
                 }}
                 onCancel={() => setShowSignOut(false)}
             />
-
-            <Modal
-                visible={themeModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setThemeModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.themeModalCard}>
-                        <Text style={styles.themeModalTitle}>Select Theme</Text>
-                        <ScrollView style={styles.themeList}>
-                            {Object.values(themes).map((t) => (
-                                <Pressable
-                                    key={t.id}
-                                    style={[styles.themeOption, activeThemeId === t.id && styles.themeOptionActive]}
-                                    onPress={() => handleApplyTheme(t.id)}
-                                >
-                                    <View style={[styles.themeColorPreview, { backgroundColor: t.colors.primary }]} />
-                                    <Text style={[styles.themeOptionText, activeThemeId === t.id && styles.themeOptionTextActive]}>
-                                        {t.label}
-                                    </Text>
-                                    {activeThemeId === t.id && (
-                                        <Ionicons name="checkmark" size={20} color={theme.accent} style={{ marginLeft: 'auto' }} />
-                                    )}
-                                </Pressable>
-                            ))}
-                        </ScrollView>
-                        <Pressable style={styles.themeModalClose} onPress={() => setThemeModalVisible(false)}>
-                            <Text style={styles.themeModalCloseText}>Close</Text>
-                        </Pressable>
-                    </View>
-                </View>
-            </Modal>
         </Screen>
     );
 }
@@ -280,7 +223,7 @@ const styles = StyleSheet.create({
         borderColor: theme.moon,
     },
     avatarFallback: {
-        backgroundColor: theme.skyLine,
+        backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -306,14 +249,14 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     name: {
-        color: theme.skyText,
+        color: theme.textOnPrimary,
         fontSize: 21,
         fontWeight: '700',
     },
     phoneChip: {
         marginTop: spacing.xs,
         borderWidth: 1,
-        borderColor: theme.skyChipBorder,
+        borderColor: theme.textMuted,
         backgroundColor: theme.sky,
         paddingHorizontal: spacing.sm + 2,
         paddingVertical: 3,
@@ -457,7 +400,7 @@ const styles = StyleSheet.create({
     },
 
     hero: {
-        backgroundColor: theme.accentDeep,
+        backgroundColor: theme.primary,
         paddingTop: spacing.xxl + spacing.sm,
         paddingBottom: spacing.xxl,
         alignItems: 'center',
@@ -472,7 +415,7 @@ const styles = StyleSheet.create({
         width: 220,
         height: 220,
         borderRadius: 110,
-        backgroundColor: theme.accent,
+        backgroundColor: theme.primaryDark,
         opacity: 0.35,
     },
     heroShapeTwo: {
@@ -482,7 +425,7 @@ const styles = StyleSheet.create({
         width: 160,
         height: 160,
         borderRadius: 80,
-        backgroundColor: theme.sky,
+        backgroundColor: theme.primaryDark,
         opacity: 0.4,
     },
     heroDotGrid: {
@@ -516,7 +459,7 @@ const styles = StyleSheet.create({
         height: 106,
         borderRadius: radius.pill,
         borderWidth: 2,
-        borderColor: theme.moon,
+        borderColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.md,
@@ -526,7 +469,7 @@ const styles = StyleSheet.create({
         height: 94,
         borderRadius: radius.pill,
         padding: 3,
-        backgroundColor: theme.accentDeep,
+        backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },

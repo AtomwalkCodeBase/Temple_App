@@ -2,22 +2,21 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, Pressable, RefreshControl,
-  ActivityIndicator, StyleSheet, Alert
+  ActivityIndicator, StyleSheet,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import MoonPhase from '../components/MoonPhase';
 import TithiStrip from '../components/TithiStrip';
-import { getDayPanchang, getTithiStrip, getUpcomingEvents, getAvailableLocations, updateMyProfile } from '../services/api';
+import { getDayPanchang, getTithiStrip, getUpcomingEvents } from '../services/api';
 import { getGreeting } from '../services/i18n';
 import { theme, radius, fontSize } from '../theme/theme';
 import Screen from '../components/Screen';
 import { useUser } from '../context/UserContext';
 import ResettableScrollView from '../components/ResettableScrollView';
-import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -101,6 +100,7 @@ export default function HomeScreen({ navigation }) {
     checkAutoLocation();
   }, [setSelectedLocation, refreshProfile]);
 
+
   const load = useCallback(async (force = false) => {
     if (!profile) return;
     if (!force && loadedPreferenceKey.current === preferenceKey) return;
@@ -149,7 +149,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) {
     return (
       <Screen>
-        <View style={[styles.center, { backgroundColor: theme.primary }]}>
+        <View style={[styles.center, { backgroundColor: theme.sky }]}>
           <ActivityIndicator color={theme.moon} size="large" />
         </View>
       </Screen>
@@ -178,12 +178,13 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <Screen>
+
       <ResettableScrollView
         style={{ backgroundColor: theme.surface }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* ---- Night sky hero ---- */}
-        <LinearGradient colors={[theme.primary, theme.primaryTint]} style={styles.hero}>
+        <View style={styles.hero}>
           <View style={styles.heroTop}>
             <View>
               <Text style={styles.greeting}>{getGreeting(day.user_language)}, {day.user_first_name}</Text>
@@ -199,9 +200,7 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="person-circle-outline" size={20} color="#fff" />
             </Pressable>
           </View>
-        </LinearGradient>
 
-        <View style={styles.hero2}>
           <View style={{ alignItems: 'center' }}>
             <MoonPhase
               tithiNumber={day.tithi_number}
@@ -221,13 +220,13 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.metaLine}>
               {day.sunrise && (
                 <>
-                  <Ionicons name="sunny-outline" size={14} color={theme.accentBold} /> {day.sunrise}
+                  <Ionicons name="sunny-outline" size={14} color={theme.skyLine} /> {day.sunrise}
                   {'   '}
                 </>
               )}
               {day.sunset && (
                 <>
-                  <Ionicons name="moon-outline" size={14} color={theme.accentBold} /> {day.sunset}
+                  <Ionicons name="moon-outline" size={14} color={theme.skyLine} /> {day.sunset}
                 </>
               )}
               {daysToPurnima != null &&
@@ -235,7 +234,6 @@ export default function HomeScreen({ navigation }) {
             </Text>
           </View>
         </View>
-        {/* </View> */}
 
         {/* ---- Tithi strip ---- */}
         <TithiStrip
@@ -348,42 +346,22 @@ const styles = StyleSheet.create({
     paddingVertical: 11, paddingHorizontal: 22, marginTop: 18,
   },
   retryButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  hero: {
-    // backgroundColor: theme.primary,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 22,
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
-    zIndex: 2,
-  },
-  hero2: {
-    backgroundColor: theme.sky,
-    paddingHorizontal: 18,
-    paddingTop: 20,
-    paddingBottom: 22,
-    // borderTopLeftRadius: radius.lg,
-    // borderTopRightRadius: radius.lg,
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
-    marginTop: -radius.lg,
-    zIndex: 1,
-  },
+  hero: { backgroundColor: theme.sky, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18 },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  greeting: { color: '#fff', fontSize: fontSize.lg, fontWeight: '600' },
-  heroDate: { color: 'rgba(255,255,255,0.75)', fontSize: fontSize.base, marginTop: 1 },
+  greeting: { color: theme.skyText, fontSize: 16, fontWeight: '600' },
+  heroDate: { color: theme.skyMuted, fontSize: 11, marginTop: 1 },
+  locationChip: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 5,
+  },
   profileChip: {
     borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.4)',
     borderRadius: 15, paddingHorizontal: 4, paddingVertical: 4,
   },
-  locationChip: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 5,
-  },
-  locationText: { color: '#fff', fontSize: 11 },
-  pakshaLine: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 6, textAlign: 'center', lineHeight: 16 },
-  tithiBig: { color: '#fff', fontSize: 30, fontWeight: '600', marginTop: 1 },
-  tithiSub: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
-  metaLine: { color: theme.accentBold, fontSize: fontSize.sm, marginTop: 9, fontWeight: '500' },
+  locationText: { color: theme.star, fontSize: 11 },
+  pakshaLine: { color: theme.skyMuted, fontSize: 12, marginTop: 6, textAlign: 'center', lineHeight: 16 },
+  tithiBig: { color: theme.skyText, fontSize: 30, fontWeight: '600', marginTop: 1 },
+  tithiSub: { color: theme.skyMuted, fontSize: 12, marginTop: 2 },
+  metaLine: { color: theme.skyLine, fontSize: fontSize.sm, marginTop: 9 },
   festivalBanner: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: theme.sacredTint, borderRadius: radius.m,

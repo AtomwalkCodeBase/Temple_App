@@ -15,7 +15,7 @@ export default function SplashScreen({ onFinished }) {
   return (
     <Screen edges={['top', 'bottom', 'left', 'right']} style={styles.container}>
       <Image
-        source={require('../assets/logo-diya.png')}
+        source={require('../assets/icon.png')}
         style={styles.logo}
         resizeMode="contain"
         accessibilityLabel="App logo"

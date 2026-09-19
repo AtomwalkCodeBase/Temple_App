@@ -47,7 +47,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./src/assets/logo-diya.png",
+          "image": "./src/assets/icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"
         }

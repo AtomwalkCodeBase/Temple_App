@@ -597,7 +597,7 @@ export function ShareComposerModal({
                                         size={18}
                                         color={
                                             shareMode === "image"
-                                                ? theme.accent
+                                                ? theme.primary
                                                 : theme.textMuted
                                         }
                                     />
@@ -688,7 +688,7 @@ export function ShareComposerModal({
 const styles = StyleSheet.create({
     shareModalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(4,44,83,0.45)',
+        backgroundColor: 'rgba(51,40,31,0.5)',
         justifyContent: 'flex-end',
     },
 
@@ -870,7 +870,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        backgroundColor: theme.accent,
+        backgroundColor: theme.primary,
         borderRadius: radius.m,
         paddingVertical: 13,
         marginTop: 16,
@@ -974,8 +974,8 @@ const styles = StyleSheet.create({
     },
 
     editorOptionSelected: {
-        borderColor: theme.accent,
-        backgroundColor: theme.accentTint,
+        borderColor: theme.primary,
+        backgroundColor: theme.primaryTint,
     },
 
     editorOptionImage: {
@@ -1018,8 +1018,8 @@ const styles = StyleSheet.create({
     },
 
     fontButtonSelected: {
-        backgroundColor: theme.accentTint,
-        borderColor: theme.accent,
+        backgroundColor: theme.primaryTint,
+        borderColor: theme.primary,
     },
 
     moveModeContainer: {
@@ -1039,8 +1039,8 @@ const styles = StyleSheet.create({
     },
 
     moveModeButtonSelected: {
-        backgroundColor: theme.accentTint,
-        borderColor: theme.accent,
+        backgroundColor: theme.primaryTint,
+        borderColor: theme.primary,
     },
 
     moveModeText: {
@@ -1074,17 +1074,17 @@ const styles = StyleSheet.create({
     },
 
     shareModeButtonSelected: {
-        borderColor: theme.accent,
-        backgroundColor: theme.accentTint,
+        borderColor: theme.primary,
+        backgroundColor: theme.primaryTint,
     },
 
     shareModeText: {
         fontSize: 12,
         fontWeight: "600",
-        color: theme.textMuted,
+        color: theme.text,
     },
 
     shareModeTextSelected: {
-        color: theme.accent,
+        color: theme.primary,
     },
 })

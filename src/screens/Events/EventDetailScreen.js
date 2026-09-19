@@ -426,7 +426,7 @@ function UserEventDetail({ navigation, route }) {
               <Text style={styles.cardTitle}>Reminders</Text>
               {event.reminders.map((r) => (
                 <View key={r.id} style={styles.checkboxRow}>
-                  <Ionicons name="notifications" size={15} color={theme.accent} />
+                  <Ionicons name="notifications" size={15} color={theme.primary} />
                   <Text style={styles.checkboxLabel}>
                     {'  '}{r.reminder_minutes === 0 ? 'On the day' : `${r.reminder_minutes / 1440} day(s) before`}
                   </Text>
@@ -561,7 +561,7 @@ function ContactPickerModal({ visible, onClose, onPick, onError }) {
         <TextInput style={styles.searchInput} placeholder="Search contacts"
           value={query} onChangeText={setQuery} />
         {loading ? (
-          <ActivityIndicator color={theme.accent} style={{ paddingVertical: 30 }} />
+          <ActivityIndicator color={theme.primary} style={{ paddingVertical: 30 }} />
         ) : (
           <FlatList
             data={filtered}
@@ -622,16 +622,16 @@ const styles = StyleSheet.create({
   checkboxRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   checkboxLabel: { fontSize: 13, color: theme.text },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingBottom: 4 },
-  typeBadge: { backgroundColor: theme.accentTint, borderRadius: 10, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3 },
-  typeBadgeText: { color: theme.accentDeep, fontSize: 11, fontWeight: '600' },
+  typeBadge: { backgroundColor: theme.primaryTint, borderRadius: 10, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3 },
+  typeBadgeText: { color: theme.primary, fontSize: 11, fontWeight: '600' },
   title: { fontSize: 20, fontWeight: '700', color: theme.text, marginTop: 8 },
   subtitle: { fontSize: 13, color: theme.textMuted, marginTop: 2 },
   sectionTitle: { fontSize: 13, fontWeight: '600', color: theme.textMuted },
-  smallAddButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.accent, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4 },
+  smallAddButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.primary, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4 },
   smallAddButtonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   participantRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.accentTint, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 12, fontWeight: '600', color: theme.accentDeep },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.primaryTint, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 12, fontWeight: '600', color: theme.primaryDark },
   statusPill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
   statusPillText: { fontSize: 11, fontWeight: '600' },
   statusAccepted: { backgroundColor: '#E1F5EE' }, statusAcceptedText: { color: '#0F6E56' },
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
   shareButtonText: { fontSize: 14, fontWeight: '600', color: theme.text },
   modalOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(4,44,83,0.4)', justifyContent: 'flex-end',
+    backgroundColor: 'rgba(51,40,31,0.5)', justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: theme.surface, borderTopLeftRadius: radius.l,

@@ -233,7 +233,7 @@ export default function MyEventsScreen() {
                     ? 'Show less'
                     : `Show ${section.totalPast - PAST_PREVIEW_COUNT} more past event${section.totalPast - PAST_PREVIEW_COUNT === 1 ? '' : 's'}`}
                 </Text>
-                <Ionicons name={showAllPast ? 'chevron-up' : 'chevron-down'} size={14} color={theme.accent} />
+                <Ionicons name={showAllPast ? 'chevron-up' : 'chevron-down'} size={14} color={theme.primary} />
               </Pressable>
             )}
           </View>
@@ -319,12 +319,12 @@ function EventRow({ event, isToday, onPress }) {
         ]}
       >
         {!isTracked && event.event_type === 'TEMPLE_VISIT' ? (
-          <TempleIcon size={14} color={theme.accent} />
+          <TempleIcon size={14} color={theme.primary} />
         ) : (
           <Ionicons
             name={isTracked ? 'flag-outline' : (TYPE_ICON[event.event_type] || 'ellipse-outline')}
             size={15}
-            color={isTracked ? theme.sacredMuted : theme.accent}
+            color={isTracked ? theme.sacredMuted : theme.primary}
           />
         )}
       </View>
@@ -353,7 +353,7 @@ function EventRow({ event, isToday, onPress }) {
 
       {isRecurring && (
         <View style={styles.recurringBadge}>
-          <Ionicons name="repeat" size={12} color={theme.accentDeep} />
+          <Ionicons name="repeat" size={12} color={theme.primary} />
         </View>
       )}
       <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
@@ -389,11 +389,11 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
             <Text style={styles.sheetGroupLabel}>Month</Text>
             <View style={styles.monthStepper}>
               <Pressable style={styles.monthStepBtn} onPress={() => setDraftMonth((m) => dayjs(m).subtract(1, 'month').format('YYYY-MM'))}>
-                <Ionicons name="chevron-back" size={18} color={theme.accent} />
+                <Ionicons name="chevron-back" size={18} color={theme.primary} />
               </Pressable>
               <Text style={styles.monthStepLabel}>{dayjs(draftMonth).format('MMMM YYYY')}</Text>
               <Pressable style={styles.monthStepBtn} onPress={() => setDraftMonth((m) => dayjs(m).add(1, 'month').format('YYYY-MM'))}>
-                <Ionicons name="chevron-forward" size={18} color={theme.accent} />
+                <Ionicons name="chevron-forward" size={18} color={theme.primary} />
               </Pressable>
             </View>
 
@@ -471,7 +471,7 @@ function FilterTrigger({ filter, typeFilter, religiousTypeFilter, monthFilter, s
 
   return (
     <Pressable style={styles.filterTrigger} onPress={onPress}>
-      <Ionicons name="options-outline" size={16} color={theme.accent} />
+      <Ionicons name="options-outline" size={16} color={theme.primary} />
       <Text style={styles.filterTriggerText} numberOfLines={1}>
         {activeCount === 0 && isCurrentMonth
           ? 'Filter events'
@@ -489,7 +489,7 @@ function FilterTrigger({ filter, typeFilter, religiousTypeFilter, monthFilter, s
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: theme.sky, paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   headerTitle: { fontSize: 16, fontWeight: '600', color: theme.skyText },
@@ -533,14 +533,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.border,
   },
   dateBox: { width: 38, alignItems: 'center' },
-  dateDay: { fontSize: 16, fontWeight: '700', color: theme.accent },
+  dateDay: { fontSize: 16, fontWeight: '700', color: theme.primary },
   dateMonth: { fontSize: 10, color: theme.textMuted, textTransform: 'uppercase' },
 
   typeIcon: {
     width: 28, height: 28, borderRadius: radius.pill,
     justifyContent: 'center', alignItems: 'center',
   },
-  typeIconPersonal: { backgroundColor: theme.accentTint },
+  typeIconPersonal: { backgroundColor: theme.primaryTint },
   typeIconFestival: { backgroundColor: theme.sacredTint },
 
   rowTitle: { fontSize: 14, fontWeight: '600', color: theme.text },
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
 
   recurringBadge: {
     width: 22, height: 22, borderRadius: radius.pill,
-    backgroundColor: theme.accentTint, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: theme.primaryTint, justifyContent: 'center', alignItems: 'center',
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
     marginHorizontal: 14, marginTop: 4, paddingVertical: 8,
   },
-  showMoreText: { fontSize: 12, fontWeight: '600', color: theme.accent },
+  showMoreText: { fontSize: 12, fontWeight: '600', color: theme.primary },
   // ── styles: add these for the trigger + sheet, remove filterBar/typeFilterBar/typeChip* (no longer used)
   filterTrigger: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -615,10 +615,10 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(4,44,83,0.4)', justifyContent: 'flex-end', zIndex: 30,
   },
-  sheet: {
-    backgroundColor: theme.surface, borderTopLeftRadius: radius.l, borderTopRightRadius: radius.l,
-    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 28,
-  },
+  // sheet: {
+  //   backgroundColor: theme.surface, borderTopLeftRadius: radius.l, borderTopRightRadius: radius.l,
+  //   paddingHorizontal: 16, paddingTop: 10, paddingBottom: 28,
+  // },
   sheetHandle: {
     width: 36, height: 4, borderRadius: 2, backgroundColor: theme.border,
     alignSelf: 'center', marginBottom: 12,
@@ -631,9 +631,9 @@ const styles = StyleSheet.create({
   sheetChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   sheetChip: {
     paddingHorizontal: 13, paddingVertical: 7, borderRadius: radius.pill,
-    backgroundColor: theme.surfaceAlt, borderWidth: 1, borderColor: theme.border,
+    backgroundColor: theme.surfaceAlt, borderWidth: 1, borderColor: theme.primaryTint,
   },
-  sheetChipActive: { backgroundColor: theme.accent, borderColor: theme.accent },
+  sheetChipActive: { backgroundColor: theme.primary, borderColor: theme.primaryTint },
   sheetChipText: { fontSize: 12, fontWeight: '600', color: theme.textMuted },
   sheetChipTextActive: { color: '#fff' },
   sheetActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
@@ -644,12 +644,12 @@ const styles = StyleSheet.create({
   sheetResetText: { fontSize: 14, fontWeight: '600', color: theme.textMuted },
   sheetApplyBtn: {
     flex: 2, alignItems: 'center', paddingVertical: 12,
-    borderRadius: radius.m, backgroundColor: theme.accent,
+    borderRadius: radius.m, backgroundColor: theme.primary,
   },
   sheetApplyText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   sheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(4,44,83,0.4)',
+    backgroundColor: 'rgba(51,40,31,0.5)',
     justifyContent: 'flex-end',
   },
   sheet: {

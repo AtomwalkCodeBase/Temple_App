@@ -232,8 +232,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
 
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Set a time</Text>
-          <Switch value={hasTime} onValueChange={setHasTime}
-            trackColor={{ true: theme.accent }} />
+          <Switch value={hasTime} onValueChange={setHasTime} trackColor={{ true: theme.primaryTint }} thumbColor={Platform.OS === 'android' ? theme.primary : undefined} />
         </View>
         {hasTime && (
           <>
@@ -252,8 +251,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
 
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Repeat every year (same date)</Text>
-          <Switch value={yearly} onValueChange={setYearly}
-            trackColor={{ true: theme.accent }} />
+          <Switch value={yearly} onValueChange={setYearly} trackColor={{ true: theme.primaryTint }} thumbColor={Platform.OS === 'android' ? theme.primary : theme.textMuted} />
         </View>
 
         <Text style={styles.label}>Remind me</Text>
@@ -265,7 +263,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
               <Ionicons
                 name={on ? 'checkbox' : 'square-outline'}
                 size={20}
-                color={on ? theme.accent : theme.textMuted}
+                color={on ? theme.primary : theme.textMuted}
               />
               <Text style={styles.reminderLabel}>{'  '}{opt.label}</Text>
             </Pressable>
@@ -315,7 +313,7 @@ export function Header({ title }) {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: theme.surface, flex: 1 },
-  header: { backgroundColor: theme.sky, paddingHorizontal: 16, paddingVertical: 14 },
+  header: { backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 14 },
   headerTitle: { fontSize: 16, fontWeight: '600', color: theme.skyText },
   trackNote: {
     flexDirection: 'row', alignItems: 'center',
@@ -335,9 +333,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border,
     borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6,
   },
-  chipActive: { backgroundColor: theme.accentTint, borderColor: theme.accent },
+  chipActive: { backgroundColor: theme.primaryTint, borderColor: theme.primary },
   chipText: { fontSize: 13, color: theme.textMuted },
-  chipTextActive: { color: theme.accentDeep, fontWeight: '600' },
+  chipTextActive: { color: theme.primary, fontWeight: '600' },
   switchRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginTop: spacing.xs,
@@ -346,7 +344,7 @@ const styles = StyleSheet.create({
   reminderRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7 },
   reminderLabel: { fontSize: 15, color: theme.text },
   saveButton: {
-    backgroundColor: theme.accent, borderRadius: radius.m,
+    backgroundColor: theme.primary, borderRadius: radius.m,
     paddingVertical: 13, alignItems: 'center', marginTop: 22, marginBottom: 30,
   },
   saveText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },

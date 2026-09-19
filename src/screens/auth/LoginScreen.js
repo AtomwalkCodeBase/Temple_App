@@ -98,13 +98,13 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister }) {
     <ScrollView contentContainerStyle={[styles.screen, { paddingBottom: insets.bottom + spacing.sm }]}>
       {/* Night sky hero, dressed with mandala rings + rangoli dots */}
       {/* <View style={styles.hero}> */}
-      <LinearGradient colors={[theme.primary, 'transparent']} style={styles.hero}>
+      <View style={styles.hero}>
         <View style={styles.logoCircle}>
-          <Image source={require('../../assets/new_icon.png')} style={styles.logo} resizeMode="contain" />
+          <Image source={require('../../assets/logo_white.png')} style={styles.logo} resizeMode="contain" />
         </View>
         <Text style={styles.title}>Agam Mandira</Text>
         <Text style={styles.subtitle}>Agam Wisdom, Living Traditions</Text>
-      </LinearGradient>
+      </View>
 
       {/* <Text style={styles.title}>Welcome</Text>
       <Text style={styles.subtitle}>Sign in to your account</Text>
@@ -209,22 +209,22 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    // backgroundColor: theme.primary,
+    backgroundColor: theme.primary,
     paddingTop: 56,
     paddingBottom: 60,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
   },
   logoCircle: {
-    width: 80, height: 80, borderRadius: 50,
-    backgroundColor: '#fff',
+    width: 75, height: 75, borderRadius: 50,
+    // backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.sm,
     overflow: 'hidden',
   },
   logo: { width: 80, height: 80 },
   title: {
-    color: theme.primary,
+    color: theme.textOnPrimary,
     fontSize: fontSize.xxl,
     fontWeight: '600',
     textAlign: 'center',
@@ -254,10 +254,11 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   subtitle: {
-    color: theme.text,
+    color: theme.textOnPrimary,
     fontSize: fontSize.md,
     textAlign: 'center',
     marginTop: 4,
+    fontWeight: 500
   },
   cardAccent: {
     width: 32, height: 3, borderRadius: 2,

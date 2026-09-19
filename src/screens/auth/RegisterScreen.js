@@ -92,13 +92,13 @@ export default function RegisterScreen({ onRegistered, onGoToLogin }) {
         <Text style={styles.subtitle}>Begin your journey with Agam Mandira</Text>
       </View> */}
 
-      <LinearGradient colors={[theme.primary, 'transparent']} style={styles.hero}>
+      <View style={styles.hero}>
         <View style={styles.logoCircle}>
-          <Image source={require('../../assets/new_icon.png')} style={styles.logo} resizeMode="contain" />
+          <Image source={require('../../assets/logo_white.png')} style={styles.logo} resizeMode="contain" />
         </View>
-        <Text style={styles.title}>{getPreLoginGreeting()}</Text>
-        <Text style={styles.subtitle}>Begin your journey with Agam Mandira</Text>
-      </LinearGradient>
+        <Text style={styles.title}>Agam Mandira</Text>
+        <Text style={styles.subtitle}>Agam Wisdom, Living Traditions</Text>
+      </View>
 
       {/* Daylight form card */}
       <View style={styles.card}>
@@ -184,31 +184,31 @@ const styles = StyleSheet.create({
 
   // --- Hero: night sky ---
   hero: {
-    // backgroundColor: theme.primary,
+    backgroundColor: theme.primary,
     paddingTop: 64,
     paddingBottom: 40,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
+    // borderBottomLeftRadius: radius.lg,
+    // borderBottomRightRadius: radius.lg,
     overflow: 'hidden',
   },
   logoCircle: {
-    width: 84, height: 84, borderRadius: 42,
-    backgroundColor: '#fff',
+    width: 80, height: 80, borderRadius: 50,
+    // backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.md,
     overflow: 'hidden',
   },
-  logo: { width: 66, height: 66 },
+  logo: { width: 80, height: 80 },
   title: {
-    color: theme.text,
+    color: theme.textOnPrimary,
     fontSize: fontSize.xxl,
     fontWeight: '600',
     textAlign: 'center',
   },
   subtitle: {
-    color: theme.text,
+    color: theme.textOnPrimary,
     fontSize: fontSize.md,
     textAlign: 'center',
     marginTop: 4,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: theme.accent,
+    backgroundColor: theme.primary,
     borderRadius: radius.m,
     paddingVertical: 14,
     alignItems: 'center',

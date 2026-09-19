@@ -62,7 +62,7 @@ export default function BulkRemindersScreen({ navigation }) {
               style={[styles.tabBtn, active && styles.tabBtnActive]}
               onPress={() => setTab(t.key)}
             >
-              <Ionicons name={t.icon} size={15} color={active ? theme.accent : theme.textMuted} />
+              <Ionicons name={t.icon} size={15} color={active ? theme.primary : theme.textMuted} />
               <Text style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>{t.label}</Text>
             </Pressable>
           );
@@ -169,9 +169,9 @@ function EventTypeSection({ navigation }) {
         onChangeText={(v) => { setYear(v); setOccurrences(null); setResult(null); }} />
 
       <Pressable style={[styles.fetchButton, fetching && { opacity: 0.6 }]} onPress={fetchOccurrences} disabled={fetching}>
-        {fetching ? <ActivityIndicator color={theme.accent} /> : (
+        {fetching ? <ActivityIndicator color={theme.primary} /> : (
           <>
-            <Ionicons name="search-outline" size={16} color={theme.accent} />
+            <Ionicons name="search-outline" size={16} color={theme.primary} />
             <Text style={styles.fetchButtonText}>Fetch {EVENT_TYPES.find(t => t.key === eventType)?.label} dates</Text>
           </>
         )}
@@ -192,7 +192,7 @@ function EventTypeSection({ navigation }) {
               return (
                 <Pressable key={o.id} style={styles.occurrenceRow} onPress={() => toggleOne(o.id)}>
                   <Ionicons name={on ? 'checkbox' : 'square-outline'} size={18}
-                    color={on ? theme.accent : theme.textMuted} />
+                    color={on ? theme.primary : theme.textMuted} />
                   <View style={{ marginLeft: 8, flex: 1 }}>
                     <Text style={styles.occurrenceName}>{o.title || o.label}</Text>
                     <Text style={styles.occurrenceDate}>{dayjs(o.date).format('ddd, D MMM YYYY')}</Text>
@@ -209,7 +209,7 @@ function EventTypeSection({ navigation }) {
             return (
               <Pressable key={opt.minutes} style={styles.checkboxRow} onPress={() => toggleReminder(opt.minutes)}>
                 <Ionicons name={on ? 'checkbox' : 'square-outline'} size={18}
-                  color={on ? theme.accent : theme.textMuted} />
+                  color={on ? theme.primary : theme.textMuted} />
                 <Text style={styles.checkboxLabel}>{'  '}{opt.label}</Text>
               </Pressable>
             );
@@ -317,7 +317,7 @@ function WeekdaySeriesSection({ navigation }) {
         return (
           <Pressable key={opt.minutes} style={styles.checkboxRow} onPress={() => toggleReminder(opt.minutes)}>
             <Ionicons name={on ? 'checkbox' : 'square-outline'} size={18}
-              color={on ? theme.accent : theme.textMuted} />
+              color={on ? theme.prim0ary : theme.textMuted} />
             <Text style={styles.checkboxLabel}>{'  '}{opt.label}</Text>
           </Pressable>
         );
@@ -341,8 +341,8 @@ function WeekdaySeriesSection({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: theme.sky, paddingHorizontal: 16, paddingVertical: 14 },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: theme.skyText },
+  header: { backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 14 },
+  headerTitle: { fontSize: 16, fontWeight: '600', color: theme.textOnPrimary },
 
   tabBar: {
     flexDirection: 'row', backgroundColor: theme.surfaceAlt,
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   },
   tabBtnActive: { backgroundColor: theme.surface, elevation: 1, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3 },
   tabBtnText: { fontSize: 13, fontWeight: '600', color: theme.textMuted },
-  tabBtnTextActive: { color: theme.accent },
+  tabBtnTextActive: { color: theme.primary },
 
   section: { padding: 16 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: theme.text },
@@ -371,24 +371,24 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border,
     borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6,
   },
-  chipActive: { backgroundColor: theme.accentTint, borderColor: theme.accent },
+  chipActive: { backgroundColor: theme.primaryTint, borderColor: theme.primaryDark },
   chipText: { fontSize: 13, color: theme.textMuted },
-  chipTextActive: { color: theme.accentDeep, fontWeight: '600' },
+  chipTextActive: { color: theme.primary, fontWeight: '600' },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
   checkboxLabel: { fontSize: 13, color: theme.text },
 
   fetchButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    borderWidth: 1, borderColor: theme.accent, borderRadius: radius.m,
+    borderWidth: 1, borderColor: theme.primary, borderRadius: radius.m,
     paddingVertical: 11, marginTop: 16,
   },
-  fetchButtonText: { color: theme.accent, fontSize: 14, fontWeight: '600' },
+  fetchButtonText: { color: theme.primary, fontSize: 14, fontWeight: '600' },
 
   occurrenceBlock: { marginTop: 18 },
   occurrenceHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  selectAllText: { fontSize: 12, fontWeight: '600', color: theme.accent },
+  selectAllText: { fontSize: 12, fontWeight: '600', color: theme.primary },
   occurrenceList: {
     marginTop: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border,
     borderRadius: radius.m, backgroundColor: theme.surfaceAlt, overflow: 'hidden',
@@ -399,11 +399,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border,
   },
   occurrenceName: { fontSize: 13, fontWeight: '700', color: theme.text },
-  occurrenceDate: { fontSize: 12, fontWeight: '500', color: theme.accent, marginTop: 1 },
+  occurrenceDate: { fontSize: 12, fontWeight: '500', color: theme.primary, marginTop: 1 },
   occurrenceTithi: { fontSize: 11, color: theme.textMuted, marginTop: 1 },
 
   button: {
-    backgroundColor: theme.accent, borderRadius: radius.m,
+    backgroundColor: theme.primary, borderRadius: radius.m,
     paddingVertical: 12, alignItems: 'center', marginTop: 16,
   },
   buttonText: { color: '#fff', fontSize: 14, fontWeight: '600' },

@@ -47,7 +47,7 @@ export default function NoInternetModal({ visible }) {
       transparent
       animationType="fade"
       // Hard-block: back button / swipe cannot dismiss it
-      onRequestClose={() => {}}
+      onRequestClose={() => { }}
       statusBarTranslucent
     >
       <View style={styles.overlay}>
@@ -121,7 +121,7 @@ function WaitingDots() {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(4, 44, 83, 0.82)',
+    backgroundColor: 'rgba(51,40,31,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radius.pill,
-    backgroundColor: theme.accentTint,
+    backgroundColor: theme.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
@@ -176,6 +176,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.accent,
+    backgroundColor: theme.primary,
   },
 });

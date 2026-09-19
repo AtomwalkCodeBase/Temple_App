@@ -245,18 +245,18 @@ function OptionRow({ label, sublabel, selected, busy, onPress }) {
         {!!sublabel && <Text style={styles.optionSublabel}>{sublabel}</Text>}
       </View>
       {busy ? (
-        <ActivityIndicator size="small" color={theme.accent} />
+        <ActivityIndicator size="small" color={theme.primary} />
       ) : selected ? (
-        <Ionicons name="checkmark-circle" size={20} color={theme.accent} />
+        <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
       ) : (
-        <Ionicons name="ellipse-outline" size={20} color={theme.border} />
+        <Ionicons name="ellipse-outline" size={20} color={theme.primaryTint} />
       )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: theme.sky, paddingHorizontal: 16, paddingVertical: 14 },
+  header: { backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 14 },
   headerTitle: { fontSize: 16, fontWeight: '600', color: theme.skyText },
   sectionTitle: {
     fontSize: 13, fontWeight: '600', color: theme.textMuted,

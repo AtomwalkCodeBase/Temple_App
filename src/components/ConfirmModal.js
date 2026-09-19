@@ -4,9 +4,9 @@ import { theme, spacing, radius } from '../theme/theme';
 const VARIANTS = {
     normal: {
         icon: '?',
-        iconBg: theme.accentTint,
-        iconColor: theme.accent,
-        confirmBg: theme.accent,
+        iconBg: theme.primaryTint,
+        iconColor: theme.primary,
+        confirmBg: theme.primary,
     },
     error: {
         icon: '!',
