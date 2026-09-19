@@ -12,8 +12,10 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import ResettableScrollView from '../components/ResettableScrollView';
 import Constants from 'expo-constants';
 
+
 const APP_SHARE_URL = ' https://play.google.com/store/apps/details?id=com.agam.app'; // TODO: replace with real link/deep link
 const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
+
 
 // Simple row for settings-style list items
 function Row({ icon, label, value, onPress, danger, highlight }) {
@@ -35,16 +37,20 @@ function Row({ icon, label, value, onPress, danger, highlight }) {
     );
 }
 
+
 export default function ProfileScreen({ onSignOut }) {
+
 
     const navigation = useNavigation();
     const { profile } = useUser();
     const [showSignOut, setShowSignOut] = useState(false);
 
+
     const handleSignOut = async () => {
         await AsyncStorage.removeItem('auth_token');
         onSignOut?.();
     };
+
 
     const handleInvite = async () => {
         try {
@@ -58,14 +64,17 @@ export default function ProfileScreen({ onSignOut }) {
         }
     };
 
+
     const languageLabel = LANGUAGES.find((l) => l.code === profile?.language)?.label || '—';
     const panjiLabel = profile ? `${profile.calendar_name} · ${profile.location_name}` : '—';
+
 
     const user = {
         name: profile?.first_name || 'Devotee',
         username: profile?.phone ? `${profile.phone}` : '',
         avatar: profile?.avatar || null,
     };
+
 
     return (
         <Screen>
@@ -78,9 +87,11 @@ export default function ProfileScreen({ onSignOut }) {
                     ))}
                 </View>
 
+
                 {/* <Pressable style={styles.settingsBtn} onPress={() => navigation.navigate('Settings')} hitSlop={10}>
                     <Ionicons name="settings-outline" size={18} color={theme.skyMuted} />
                 </Pressable> */}
+
 
                 <View style={styles.avatarRing}>
                     <View style={styles.avatarRingInner}>
@@ -96,7 +107,9 @@ export default function ProfileScreen({ onSignOut }) {
                     </View>
                 </View>
 
+
                 <Text style={styles.name}>{user.name}</Text>
+
 
                 {!!user.username && (
                     <View style={styles.phoneChip}>
@@ -105,6 +118,7 @@ export default function ProfileScreen({ onSignOut }) {
                     </View>
                 )}
             </View>
+
 
             <ResettableScrollView
                 style={styles.body}
@@ -129,20 +143,25 @@ export default function ProfileScreen({ onSignOut }) {
                     </View>
                 </Pressable>
 
+
                 {/* Preferences */}
                 <Text style={styles.sectionTitle}>Preferences</Text>
                 <View style={styles.card}>
                     <Row icon="🌐" label="Language" value={languageLabel} onPress={() => navigation.navigate('Settings', { section: 'language' })} />
                     <View style={styles.divider} />
 
-                    <Row icon="📍" label="Panji / Location" value={panjiLabel} onPress={() => navigation.navigate('Settings', { section: 'panji' })} />
+
+                    <Row icon="📍" label="Panji / Location  " value={panjiLabel} onPress={() => navigation.navigate('Settings', { section: 'panji' })} />
                     <View style={styles.divider} />
+
 
                     {/* <Row icon="🎨" label="Theme" value={themes[activeThemeId]?.label || 'Default'} onPress={() => setThemeModalVisible(true)} />
                     <View style={styles.divider} /> */}
 
+
                     {/* <Row icon="🔔" label="Reminders" onPress={() => navigation.navigate('BulkReminders')} /> */}
                 </View>
+
 
                 {/* Support / About */}
                 {/* <Text style={styles.sectionTitle}>Support</Text>
@@ -154,13 +173,16 @@ export default function ProfileScreen({ onSignOut }) {
                     <Row icon="ℹ️" label="About" value={`v${APP_VERSION}`} onPress={() => { }} />
                 </View> */}
 
+
                 {/* Sign out */}
                 <View style={styles.card}>
                     <Row icon="🚪" label="Sign Out" danger onPress={() => setShowSignOut(true)} />
                 </View>
 
+
                 <Text style={styles.footerNote}>Agam Mandira · Your daily devotional companion</Text>
             </ResettableScrollView>
+
 
             <ConfirmModal
                 visible={showSignOut}
@@ -178,6 +200,7 @@ export default function ProfileScreen({ onSignOut }) {
         </Screen>
     );
 }
+
 
 const styles = StyleSheet.create({
     screen: {
@@ -268,6 +291,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 
+
     // Body
     body: {
         flex: 1,
@@ -276,6 +300,7 @@ const styles = StyleSheet.create({
         padding: spacing.base,
         paddingBottom: spacing.xxl,
     },
+
 
     // Invite card
     inviteCard: {
@@ -323,6 +348,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '700',
     },
+
 
     // Sections
     sectionTitle: {
@@ -392,12 +418,14 @@ const styles = StyleSheet.create({
         fontSize: 18,
     },
 
+
     footerNote: {
         textAlign: 'center',
         color: theme.textMuted,
         fontSize: 11,
         marginTop: spacing.sm,
     },
+
 
     hero: {
         backgroundColor: theme.primary,
@@ -570,3 +598,4 @@ const styles = StyleSheet.create({
         color: theme.text,
     },
 });
+

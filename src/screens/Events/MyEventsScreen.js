@@ -18,6 +18,8 @@ import FloatingActionMenu from '../../components/FloatingActionMenu';
 import TempleIcon from '../../assets/TempleIcon';
 
 
+
+
 const TYPE_LABEL = {
   PUJA: 'Puja', BRATA: 'Brata', FAMILY: 'Family',
   TEMPLE_VISIT: 'Temple visit', OTHER: 'Other',
@@ -27,12 +29,14 @@ const TYPE_ICON = {
   OTHER: 'ellipse-outline',
 };
 
+
 const FILTERS = [
   { key: 'ALL', label: 'All' },
   { key: 'PERSONAL', label: 'Personal' },
   { key: 'FESTIVAL', label: 'Festivals' },
   { key: 'RECURRING', label: 'Recurring' },
 ];
+
 
 const TYPE_FILTERS = [
   { key: 'ALL', label: 'All types' },
@@ -43,6 +47,7 @@ const TYPE_FILTERS = [
   { key: 'OTHER', label: 'Other' },
 ];
 
+
 const RELIGIOUS_TYPES = [
   { key: 'ALL', label: 'All' },
   { key: 'EKADASHI', label: 'Ekadashi' },
@@ -52,10 +57,12 @@ const RELIGIOUS_TYPES = [
   { key: 'BRATA', label: 'Brata' },
 ];
 
+
 export default function MyEventsScreen() {
   const navigation = useNavigation();
   const listRef = useRef(null);
   const route = useRoute();
+
 
   const [events, setEvents] = useState(null);   // null = initial loading
   const [refreshing, setRefreshing] = useState(false);
@@ -68,7 +75,9 @@ export default function MyEventsScreen() {
   const [monthFilter, setMonthFilter] = useState(dayjs().format('YYYY-MM'));
   const [skipMonthFilter, setSkipMonthFilter] = useState(false);
 
+
   const PAST_PREVIEW_COUNT = 5;
+
 
   useFocusEffect(useCallback(() => {
     if (route.params?.presetReligiousFilter) {
@@ -87,6 +96,7 @@ export default function MyEventsScreen() {
     }
   }, [route.params?.presetReligiousFilter, route.params?.presetTypeFilter]));
 
+
   const load = useCallback(async () => {
     try {
       const data = await listUserEvents();
@@ -97,17 +107,20 @@ export default function MyEventsScreen() {
     }
   }, []);
 
+
   useFocusEffect(useCallback(() => { load(); }, [load]));
   useFocusEffect(useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, []));
   useEffect(() => { setShowAllPast(false) }, [filter, typeFilter, search]);
 
+
   const onRefresh = async () => {
     setRefreshing(true);
     await load();
     setRefreshing(false);
   };
+
 
   const filtered = useMemo(() => {
     if (!events) return [];
@@ -144,6 +157,7 @@ export default function MyEventsScreen() {
     return result;
   }, [events, filter, typeFilter, religiousTypeFilter, monthFilter, skipMonthFilter, search]);
 
+
   if (events === null) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.surface }}>
@@ -155,11 +169,13 @@ export default function MyEventsScreen() {
     );
   }
 
+
   const today = dayjs().format('YYYY-MM-DD');
   const todayEvents = filtered.filter((e) => e.event_date === today);
   const upcoming = filtered.filter((e) => e.event_date > today).sort((a, b) => a.event_date.localeCompare(b.event_date));
   const pastAll = filtered.filter((e) => e.event_date < today).sort((a, b) => b.event_date.localeCompare(a.event_date));
   const past = showAllPast ? pastAll : pastAll.slice(0, PAST_PREVIEW_COUNT);
+
 
   const sections = [
     { title: 'Today', data: todayEvents },
@@ -167,10 +183,12 @@ export default function MyEventsScreen() {
     { title: 'Past', data: past, totalPast: pastAll.length },
   ].filter((s) => s.data.length > 0);
 
+
   const fabActions = [
     { key: 'recurring', label: 'Add recurring event', icon: 'repeat-outline', onPress: () => navigation.navigate('BulkReminders') },
     { key: 'event', label: 'Add event', icon: 'calendar-outline', onPress: () => navigation.navigate('AddEvent') },
   ];
+
 
   if (events.length === 0) {
     return (
@@ -190,6 +208,7 @@ export default function MyEventsScreen() {
       </Screen>
     );
   }
+
 
   return (
     <Screen edges={['top', 'left', 'right']}>
@@ -247,6 +266,7 @@ export default function MyEventsScreen() {
       />
       <FloatingActionMenu actions={fabActions} />
 
+
       <FilterSheet
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
@@ -265,6 +285,7 @@ export default function MyEventsScreen() {
   );
 }
 
+
 function Header() {
   return (
     <View style={styles.header}>
@@ -272,6 +293,7 @@ function Header() {
     </View>
   );
 }
+
 
 // ── new component, alongside FilterBar
 function SearchBar({ value, onChange }) {
@@ -295,9 +317,11 @@ function SearchBar({ value, onChange }) {
   );
 }
 
+
 function EventRow({ event, isToday, onPress }) {
   const isTracked = !!event.linked_religious_event;
   const isRecurring = event.recurrence_type && event.recurrence_type !== 'NONE';
+
 
   return (
     <Pressable style={[styles.row, isToday && styles.rowToday]} onPress={onPress}>
@@ -311,6 +335,7 @@ function EventRow({ event, isToday, onPress }) {
           <Text style={styles.dateMonth}>{dayjs(event.event_date).format('MMM')}</Text>
         </View>
       )}
+
 
       <View
         style={[
@@ -328,6 +353,7 @@ function EventRow({ event, isToday, onPress }) {
           />
         )}
       </View>
+
 
       <View style={{ flex: 1 }}>
         <Text style={styles.rowTitle} numberOfLines={1}>{event.title}</Text>
@@ -351,6 +377,7 @@ function EventRow({ event, isToday, onPress }) {
         </View>
       </View>
 
+
       {isRecurring && (
         <View style={styles.recurringBadge}>
           <Ionicons name="repeat" size={12} color={theme.primary} />
@@ -361,12 +388,14 @@ function EventRow({ event, isToday, onPress }) {
   );
 }
 
+
 // ── new component: bottom sheet with both filter groups, applied together
 function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter, monthFilter, onApply }) {
   const [draftFilter, setDraftFilter] = useState(filter);
   const [draftType, setDraftType] = useState(typeFilter);
   const [draftReligious, setDraftReligious] = useState(religiousTypeFilter);
   const [draftMonth, setDraftMonth] = useState(monthFilter);
+
 
   useEffect(() => {
     if (visible) {
@@ -377,6 +406,7 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
     }
   }, [visible]);
 
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetOverlay}>
@@ -385,6 +415,7 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
           <View style={styles.sheetHandle} />
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.sheetTitle}>Filter events</Text>
+
 
             <Text style={styles.sheetGroupLabel}>Month</Text>
             <View style={styles.monthStepper}>
@@ -396,6 +427,7 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
                 <Ionicons name="chevron-forward" size={18} color={theme.primary} />
               </Pressable>
             </View>
+
 
             <Text style={styles.sheetGroupLabel}>Category</Text>
             <View style={styles.sheetChipRow}>
@@ -410,6 +442,7 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
               })}
             </View>
 
+
             <Text style={styles.sheetGroupLabel}>Type</Text>
             <View style={styles.sheetChipRow}>
               {TYPE_FILTERS.map((f) => {
@@ -422,6 +455,7 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
                 );
               })}
             </View>
+
 
             <Text style={styles.sheetGroupLabel}>Religious observance</Text>
             <View style={styles.sheetChipRow}>
@@ -436,6 +470,7 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
               })}
             </View>
           </ScrollView>
+
 
           <View style={styles.sheetActions}>
             <Pressable
@@ -457,6 +492,7 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
   );
 }
 
+
 function FilterTrigger({ filter, typeFilter, religiousTypeFilter, monthFilter, skipMonthFilter, onPress }) {
   const isCurrentMonth = monthFilter === dayjs().format('YYYY-MM');
   const activeCount =
@@ -468,6 +504,7 @@ function FilterTrigger({ filter, typeFilter, religiousTypeFilter, monthFilter, s
   const typeLabel = TYPE_FILTERS.find((f) => f.key === typeFilter)?.label;
   const religiousLabel = RELIGIOUS_TYPES.find((f) => f.key === religiousTypeFilter)?.label;
   const monthLabel = skipMonthFilter ? 'All months' : dayjs(monthFilter).format('MMM YYYY');
+
 
   return (
     <Pressable style={styles.filterTrigger} onPress={onPress}>
@@ -487,12 +524,14 @@ function FilterTrigger({ filter, typeFilter, religiousTypeFilter, monthFilter, s
   );
 }
 
+
 const styles = StyleSheet.create({
   header: {
     backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   headerTitle: { fontSize: 16, fontWeight: '600', color: theme.skyText },
+
 
   filterBar: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 8,
@@ -508,6 +547,7 @@ const styles = StyleSheet.create({
   filterChipText: { fontSize: 12, fontWeight: '600', color: theme.textMuted },
   filterChipTextActive: { color: '#fff' },
 
+
   center: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.surface, paddingHorizontal: 32,
@@ -515,13 +555,15 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '600', color: theme.text, marginTop: 12 },
   emptySub: { fontSize: 13, color: theme.textMuted, textAlign: 'center', marginTop: 4 },
   emptyButton: {
-    backgroundColor: theme.accent, borderRadius: radius.m,
+    backgroundColor: theme.primary, borderRadius: radius.m,
     paddingVertical: 11, paddingHorizontal: 20, marginTop: 18,
   },
   emptyButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
+
   filterEmpty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   filterEmptyText: { fontSize: 13, color: theme.textMuted, marginTop: 8 },
+
 
   sectionHeader: {
     fontSize: 13, fontWeight: '600', color: theme.textMuted,
@@ -536,6 +578,7 @@ const styles = StyleSheet.create({
   dateDay: { fontSize: 16, fontWeight: '700', color: theme.primary },
   dateMonth: { fontSize: 10, color: theme.textMuted, textTransform: 'uppercase' },
 
+
   typeIcon: {
     width: 28, height: 28, borderRadius: radius.pill,
     justifyContent: 'center', alignItems: 'center',
@@ -543,10 +586,12 @@ const styles = StyleSheet.create({
   typeIconPersonal: { backgroundColor: theme.primaryTint },
   typeIconFestival: { backgroundColor: theme.sacredTint },
 
+
   rowTitle: { fontSize: 14, fontWeight: '600', color: theme.text },
   rowMetaLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 1 },
   rowSub: { fontSize: 12, color: theme.textMuted },
   rowDot: { fontSize: 12, color: theme.textMuted, marginHorizontal: 4 },
+
 
   recurringBadge: {
     width: 22, height: 22, borderRadius: radius.pill,
@@ -569,6 +614,7 @@ const styles = StyleSheet.create({
   todayBoxText: {
     fontSize: 9, fontWeight: '700', color: theme.accent, letterSpacing: 0.3,
   },
+
 
   // ── styles: add these
   typeFilterBar: {
@@ -610,6 +656,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.accent, justifyContent: 'center', alignItems: 'center',
   },
   filterBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+
 
   sheetOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -665,3 +712,4 @@ const styles = StyleSheet.create({
   monthStepBtn: { padding: 6 },
   monthStepLabel: { fontSize: 14, fontWeight: '600', color: theme.text },
 });
+
