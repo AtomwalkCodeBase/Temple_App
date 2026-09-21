@@ -8,14 +8,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { REGISTER_URL } from '../../services/api';
 import { theme, radius, spacing, fontSize } from '../../theme/theme';
-import { getPreLoginGreeting } from '../../services/i18n';
 import StatusModal from '../../components/StatusModal';
-import { Eye, EyeClosed, Moon, Sparkles } from 'lucide-react-native';
+import { Eye, EyeClosed, Sparkles } from 'lucide-react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-
 export default function RegisterScreen({ onRegistered, onGoToLogin }) {
   const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState('');

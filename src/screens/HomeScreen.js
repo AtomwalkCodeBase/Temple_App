@@ -2,17 +2,15 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, Pressable, RefreshControl,
-  ActivityIndicator, StyleSheet, Alert,
+  ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import MoonPhase from '../components/MoonPhase';
 import TithiStrip from '../components/TithiStrip';
-import {
-  getDayPanchang, getTithiStrip, getUpcomingEvents,
-  getAvailableLocations, updateMyProfile,
-} from '../services/api';
+import StatusModal from '../components/StatusModal';
+import { getAvailableLocations, getDayPanchang, getTithiStrip, getUpcomingEvents, updateMyProfile } from '../services/api';
 import { getGreeting } from '../services/i18n';
 import { theme, radius, fontSize } from '../theme/theme';
 import Screen from '../components/Screen';
@@ -20,7 +18,6 @@ import { useUser } from '../context/UserContext';
 import ResettableScrollView from '../components/ResettableScrollView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-
 
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -34,7 +31,6 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-
 export default function HomeScreen({ navigation }) {
   const { profile, setSelectedLocation, refreshProfile } = useUser();
   const [day, setDay] = useState(null);
@@ -43,102 +39,74 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [locReady, setLocReady] = useState(false); // auto-detect finished (or not needed)
+  const [showLocationWarning, setShowLocationWarning] = useState(false);
   const loadedPreferenceKey = useRef(null);
   const loadingPreferenceKey = useRef(null);
-  const autoLocRan = useRef(false); // run-once guard for auto-detect
-  const ctxRef = useRef({});        // always-latest context functions (avoids stale closures)
-  ctxRef.current = { setSelectedLocation, refreshProfile };
-
-
   const preferenceKey = profile
     ? [profile.language, profile.preferred_calendar, profile.preferred_location].join('|')
     : null;
 
-
-  // ---- Auto-detect location for brand-new users (runs once on mount) ----
   useEffect(() => {
-    if (autoLocRan.current) return;
-    autoLocRan.current = true;
-
-
-    (async () => {
-      let isNewUser = false;
-      let saved = false;
+    async function checkAutoLocation() {
+      let entryPath = null;
+      let pending = null;
       try {
-        const entryPath = await AsyncStorage.getItem('entryPath');
-        const pending = await AsyncStorage.getItem('autoLocationPending');
-        // console.log('[autoLoc] flags', entryPath, pending);
-        isNewUser = entryPath === 'register' && pending === 'true';
-        if (!isNewUser) return;
+        entryPath = await AsyncStorage.getItem('entryPath');
+        pending = await AsyncStorage.getItem('autoLocationPending');
 
+        if (entryPath === 'register' && pending === 'true') {
+          const locRes = await getAvailableLocations();
+          const locationsList = locRes.locations || [];
+          if (locationsList.length === 0) return;
 
-        const res = await getAvailableLocations();
-        const locations = res?.locations || [];
-        // console.log('[autoLoc] locations', locations.length, locations[0]);
-        if (!locations.length) return;
+          let closestLoc = locationsList[0];
 
+          try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+              let location = await Location.getCurrentPositionAsync({});
+              const userLat = location.coords.latitude;
+              const userLon = location.coords.longitude;
 
-        let closest = locations[0];
+              let minDistance = Infinity;
 
-
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-
-
-          if (status === 'granted') {
-            const pos =
-              (await Location.getLastKnownPositionAsync()) ||
-              (await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced
-              }));
-            // console.log('[autoLoc] position', pos?.coords);
-
-
-            if (pos) {
-              const { latitude: uLat, longitude: uLon } = pos.coords;
-              let min = Infinity;
-              for (const loc of locations) {
-                const lat = Number(loc.latitude);
-                const lon = Number(loc.longitude);
-                if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-                const d = getDistance(uLat, uLon, lat, lon);
-                if (d < min) { min = d; closest = loc; }
-              }
+              locationsList.forEach(loc => {
+                if (loc.latitude && loc.longitude) {
+                  const d = getDistance(userLat, userLon, loc.latitude, loc.longitude);
+                  if (d < minDistance) {
+                    minDistance = d;
+                    closestLoc = loc;
+                  }
+                }
+              });
+            } else {
+              setShowLocationWarning(true);
+              return;
             }
-          } else {
-            Alert.alert('Permission denied', 'Using default location.');
+          } catch (locErr) {
+            setShowLocationWarning(true);
+            return;
           }
-        } catch (locErr) {
-          console.warn('[autoLoc] location lookup failed', locErr);
-          Alert.alert('Location error', 'Could not get location, using default.');
+
+          await updateMyProfile({ preferred_location: closestLoc.id });
+          await setSelectedLocation(closestLoc.id);
+          await AsyncStorage.setItem('autoLocationPending', 'false');
+          await refreshProfile();
         }
-
-
-        // console.log('[autoLoc] closest', closest.id, closest.name);
-
-
-        await updateMyProfile({ preferred_location: closest.id });
-        // console.log('[autoLoc] profile updated');
-        await ctxRef.current.setSelectedLocation(closest.id);
-        await ctxRef.current.refreshProfile();
-        saved = true;
       } catch (e) {
-        console.warn('[autoLoc] failed', e);
+        console.warn('Auto location failed', e);
       } finally {
-        // Only consume the flag if the location was actually saved,
-        // so a failed attempt retries on the next launch.
-        if (isNewUser && saved) {
+        if (entryPath === 'register' && pending === 'true') {
           await AsyncStorage.setItem('autoLocationPending', 'false');
         }
-        setLocReady(true); // unblock the first load, whatever happened
       }
-    })();
-  }, []);
+    }
+    checkAutoLocation();
+  }, [setSelectedLocation, refreshProfile]);
 
 
   const load = useCallback(async (force = false) => {
-    if (!profile || !locReady) return;
+    if (!profile) return;
     if (!force && loadedPreferenceKey.current === preferenceKey) return;
     if (!force && loadingPreferenceKey.current === preferenceKey) return;
     loadingPreferenceKey.current = preferenceKey;
@@ -146,17 +114,14 @@ export default function HomeScreen({ navigation }) {
     const today = dayjs().format('YYYY-MM-DD');
     const stripStart = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
 
-
     try {
       const locationId = profile.preferred_location;
-
 
       const [d, s, u] = await Promise.all([
         getDayPanchang(today, locationId),
         getTithiStrip(stripStart, locationId, 7),
         getUpcomingEvents(30),
       ]);
-
 
       setDay({ ...d, location_name: profile.location_name });
       setStrip(s.days);
@@ -168,25 +133,22 @@ export default function HomeScreen({ navigation }) {
     } finally {
       loadingPreferenceKey.current = null;
     }
-  }, [profile, preferenceKey, locReady]);
-
+  }, [profile, preferenceKey]);
 
   useFocusEffect(
     useCallback(() => {
-      if (profile && locReady && loadedPreferenceKey.current !== preferenceKey) {
+      if (profile && loadedPreferenceKey.current !== preferenceKey) {
         setLoading(true);
         load().catch(console.warn).finally(() => setLoading(false));
       }
-    }, [profile, locReady, preferenceKey, load])
+    }, [profile, preferenceKey, load])
   );
-
 
   const onRefresh = async () => {
     setRefreshing(true);
     await load(true).catch(console.warn);
     setRefreshing(false);
   };
-
 
   if (loading) {
     return (
@@ -197,7 +159,6 @@ export default function HomeScreen({ navigation }) {
       </Screen>
     );
   }
-
 
   // day can be null on first load failure, or after a refresh failure that
   // never previously succeeded — never assume it's populated.
@@ -214,17 +175,24 @@ export default function HomeScreen({ navigation }) {
     );
   }
 
-
   const todayFestival = day.religious_events?.[0];
   const daysToPurnima = day.days_to_purnima;
   const currentMonth = dayjs(day.date).format('YYYY-MM');
   const currentMonthUpcoming = upcoming.filter((ev) => ev.date?.startsWith(currentMonth));
 
-
   return (
     <Screen>
 
-
+      <StatusModal
+        visible={showLocationWarning}
+        type="warning"
+        title="Permission Denied"
+        message="Permission denied and select location from profile."
+        primaryLabel="OK"
+        onPrimary={() => setShowLocationWarning(false)}
+        onRequestClose={() => setShowLocationWarning(false)}
+        autoClose={false}
+      />
       <ResettableScrollView
         style={{ backgroundColor: theme.surface }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -242,11 +210,10 @@ export default function HomeScreen({ navigation }) {
               </Pressable>
             </View>
             <Pressable style={styles.profileChip}
-              onPress={() => navigation.navigate('ProfileScreen')}>
+              onPress={() => navigation.navigate('Profile')}>
               <Ionicons name="person-circle-outline" size={20} color="#fff" />
             </Pressable>
           </View>
-
 
           <View style={{ alignItems: 'center' }}>
             <MoonPhase
@@ -282,13 +249,11 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-
         {/* ---- Tithi strip ---- */}
         <TithiStrip
           days={strip}
           onSelectDay={(date) => navigation.navigate('Month', { focusDate: date })}
         />
-
 
         {/* ---- Festival banner (only when today has one) ---- */}
         {todayFestival && (
@@ -309,16 +274,13 @@ export default function HomeScreen({ navigation }) {
           </Pressable>
         )}
 
-
         {/* ---- Upcoming ---- */}
         <Text style={styles.sectionTitle}>Coming up</Text>
-
 
         {/* Festivals */}
         {currentMonthUpcoming.filter((ev) => ev.kind === 'religious').length > 0 && (
           <>
             <Text style={styles.subSectionTitle}>Festivals</Text>
-
 
             {currentMonthUpcoming
               .filter((ev) => ev.kind === 'religious')
@@ -337,12 +299,10 @@ export default function HomeScreen({ navigation }) {
                     {dayjs(ev.date).format('D MMM')}
                   </Text>
 
-
                   <View style={{ flex: 1 }}>
                     <Text style={styles.upcomingTitle}>{ev.title}</Text>
                     <Text style={styles.upcomingSub}>{ev.subtitle}</Text>
                   </View>
-
 
                   <View style={[styles.kindBadge, styles.festivalBadge]}>
                     <Ionicons name="notifications-outline" size={16} color={theme.textMuted} />
@@ -352,12 +312,10 @@ export default function HomeScreen({ navigation }) {
           </>
         )}
 
-
         {/* Personal Events */}
         {currentMonthUpcoming.filter((ev) => ev.kind === 'user').length > 0 && (
           <>
             <Text style={styles.subSectionTitle}>Personal Events</Text>
-
 
             {currentMonthUpcoming
               .filter((ev) => ev.kind === 'user')
@@ -375,12 +333,10 @@ export default function HomeScreen({ navigation }) {
                     {dayjs(ev.date).format('D MMM')}
                   </Text>
 
-
                   <View style={{ flex: 1 }}>
                     <Text style={styles.upcomingTitle}>{ev.title}</Text>
                     <Text style={styles.upcomingSub}>{ev.subtitle}</Text>
                   </View>
-
 
                   <View style={[styles.kindBadge, styles.personalBadge]}>
                     <Ionicons name="people-outline" size={13} color={theme.accent} />
@@ -394,7 +350,6 @@ export default function HomeScreen({ navigation }) {
     </Screen>
   );
 }
-
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -449,7 +404,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-
   upcomingRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 14, paddingVertical: 9, paddingHorizontal: 10,
@@ -464,4 +418,3 @@ const styles = StyleSheet.create({
   festivalBadge: { backgroundColor: theme.sacredTint },
   personalBadge: { backgroundColor: theme.accentTint },
 });
-

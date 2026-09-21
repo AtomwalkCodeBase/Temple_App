@@ -3,7 +3,7 @@
     "name": "Agam Mandira",
     "slug": "agam-mandira",
     "scheme": "com.atomwalk.templedevotee",
-    "version": "1.0.7",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -21,9 +21,6 @@
     },
     "android": {
       "package": "com.agam.app",
-        "blockedPermissions": [
-          "android.permission.ACCESS_FINE_LOCATION"
-        ],
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/icon.png",
         "backgroundColor": "#FCFAF6"
@@ -85,7 +82,8 @@
       ],
       "expo-asset",
       "@react-native-vector-icons/ionicons",
-      "expo-sharing"
+      "expo-sharing",
+      "./withLocationFeatures.js"
     ],
     "extra": {
       "eas": {
