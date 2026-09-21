@@ -88,7 +88,7 @@ export default function StatusModal({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(4,44,83,0.55)',
+        backgroundColor: theme.themeOverlay,
         justifyContent: 'center',
         alignItems: 'center',
         padding: spacing.xl,

@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  buttonPressed: { backgroundColor: theme.accentDeep },
+  buttonPressed: { backgroundColor: theme.primaryDark },
   buttonText: { color: '#fff', fontSize: fontSize.md, fontWeight: '600' },
   link: {
     color: theme.textMuted,

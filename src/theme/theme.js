@@ -11,6 +11,7 @@ export const theme = {
   secondaryTint: '#FFEAEA',
   accentBold: "#8B3A3A",
   accentBoldTint: '#FFF9E0',
+  themeOverlay: 'rgba(51,40,31,0.5)',
 
   text: "#33281F",
   textMuted: "#7A6A5C",
@@ -22,6 +23,14 @@ export const theme = {
   skyLine: '#378ADD',
   skyChipBorder: '#185FA5',
   star: '#B5D4F4',
+  skyOverlay: 'rgba(4,44,83,0.55)',
+
+  heroSky: "#171526",
+  heroSky2: "#211D33",
+  accentMuted: "#3A311E",
+  background: "#15130F",
+  surface2: "#1F1C16",
+  surfaceAlt2: "#292420",
 
   // Moon
   moon: '#FAEEDA',

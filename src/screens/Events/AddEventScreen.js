@@ -15,7 +15,6 @@ import { theme, radius, spacing } from '../../theme/theme';
 import Screen from '../../components/Screen';
 import { EVENT_TYPES, REMINDER_OPTIONS } from '../../constants/constant';
 import StatusModal from '../../components/StatusModal';
-import ResettableScrollView from '../../components/ResettableScrollView';
 
 export default function AddEventScreen({ navigation, route, onSaved, }) {
   const params = route?.params ?? {};
@@ -27,6 +26,9 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
       date: params.trackDate
     }
     : null;
+
+  const isToday = (value) => dayjs(value).isSame(dayjs(), 'day');
+  const defaultRemindersForDate = (value) => (isToday(value) ? [0] : [1440]);
 
   const [title, setTitle] = useState(editing?.title ?? track?.name ?? '');
   const [eventType, setEventType] = useState(editing?.event_type ?? 'PUJA');
@@ -44,7 +46,11 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
   const [yearly, setYearly] = useState(editing ? editing.recurrence_type === 'YEARLY' : true);
   const [description, setDescription] = useState(editing?.description ?? '');
   const [reminders, setReminders] = useState(
-    editing ? (editing.reminders ?? []).map((r) => r.reminder_minutes ?? r) : [1440]
+    editing
+      ? (editing.event_date && isToday(editing.event_date)
+        ? [0]
+        : (editing.reminders ?? []).map((r) => r.reminder_minutes ?? r))
+      : defaultRemindersForDate(date)
   );
   const [saving, setSaving] = useState(false);
   const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" })
@@ -74,9 +80,11 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
     setYearly(nextEditing ? nextEditing.recurrence_type === 'YEARLY' : true);
     setDescription(nextEditing?.description ?? '');
     setReminders(
-      nextEditing
-        ? (nextEditing.reminders ?? []).map((r) => r.reminder_minutes ?? r)
-        : [1440]
+      nextEditing && nextEditing.event_date && isToday(nextEditing.event_date)
+        ? [0]
+        : nextEditing
+          ? (nextEditing.reminders ?? []).map((r) => r.reminder_minutes ?? r)
+          : defaultRemindersForDate(nextEditing?.event_date ?? nextTrack?.date ?? prefillDate ?? new Date())
     );
   }, [
     route?.params?.editUserEvent,
@@ -100,7 +108,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
     setShowTimePicker(false);
     setYearly(true);
     setDescription('');
-    setReminders([1440]);
+    setReminders([0]);
     navigation?.setParams?.({
       editUserEvent: null,
       trackCode: null,
@@ -114,6 +122,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
       setModalDetails({ visible: true, title: 'Missing name', message: 'Please give the event a name.' })
       return;
     }
+    const effectiveReminders = isToday(date) ? [0] : reminders;
     setSaving(true);
     try {
       let created;
@@ -132,7 +141,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
         created = await updateUserEvent(editing.id, patchPayload);
         await cancelEventReminders(editing.id);
       } else if (track) {
-        created = await trackReligiousEvent(track.code, { reminder_minutes: reminders });
+        created = await trackReligiousEvent(track.code, { reminder_minutes: effectiveReminders });
       } else {
         const payload = {
           title: title.trim(),
@@ -141,7 +150,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
           start_time: hasTime ? dayjs(time).format('HH:mm') : null,
           recurrence_type: yearly ? 'YEARLY' : 'NONE',
           description,
-          reminders: reminders.map((m) => ({ reminder_minutes: m })),
+          reminders: effectiveReminders.map((m) => ({ reminder_minutes: m })),
           participants: [],
         };
         created = await createUserEvent(payload);
@@ -153,7 +162,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
           id: created.id, title: created.title,
           event_date: created.event_date, start_time: created.start_time
         },
-        reminders,
+        effectiveReminders,
       );
 
       resetForm();
@@ -226,7 +235,15 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
             value={date}
             mode="date"
             display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onValueChange={(_, d) => { setShowDatePicker(false); if (d) setDate(d); }}
+            onValueChange={(_, d) => {
+              setShowDatePicker(false);
+              if (d) {
+                if (isToday(date) !== isToday(d)) {
+                  setReminders(defaultRemindersForDate(d));
+                }
+                setDate(d);
+              }
+            }}
           />
         )}
 
@@ -254,21 +271,25 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
           <Switch value={yearly} onValueChange={setYearly} trackColor={{ true: theme.primaryTint }} thumbColor={Platform.OS === 'android' ? theme.primary : theme.textMuted} />
         </View>
 
-        <Text style={styles.label}>Remind me</Text>
-        {REMINDER_OPTIONS.map((opt) => {
-          const on = reminders.includes(opt.minutes);
-          return (
-            <Pressable key={opt.minutes} style={styles.reminderRow}
-              onPress={() => toggleReminder(opt.minutes)}>
-              <Ionicons
-                name={on ? 'checkbox' : 'square-outline'}
-                size={20}
-                color={on ? theme.primary : theme.textMuted}
-              />
-              <Text style={styles.reminderLabel}>{'  '}{opt.label}</Text>
-            </Pressable>
-          );
-        })}
+        {!isToday(date) && (
+          <>
+            <Text style={styles.label}>Remind me</Text>
+            {REMINDER_OPTIONS.map((opt) => {
+              const on = reminders.includes(opt.minutes);
+              return (
+                <Pressable key={opt.minutes} style={styles.reminderRow}
+                  onPress={() => toggleReminder(opt.minutes)}>
+                  <Ionicons
+                    name={on ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={on ? theme.primary : theme.textMuted}
+                  />
+                  <Text style={styles.reminderLabel}>{'  '}{opt.label}</Text>
+                </Pressable>
+              );
+            })}
+          </>
+        )}
 
         <Text style={styles.label}>Notes (optional)</Text>
         <TextInput
@@ -281,9 +302,9 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
         />
 
         <Pressable
-          style={[styles.saveButton, saving && { opacity: 0.6 }]}
+          style={[styles.saveButton, (saving || !title.trim()) && { opacity: 0.6 }]}
           onPress={save}
-          disabled={saving}
+          disabled={saving || (!title.trim())}
         >
           <Text style={styles.saveText}>{saving ? 'Saving…' : editing ? 'Update event' : 'Save event'}</Text>
         </Pressable>
@@ -343,6 +364,7 @@ const styles = StyleSheet.create({
   switchLabel: { fontSize: 15, color: theme.text },
   reminderRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7 },
   reminderLabel: { fontSize: 15, color: theme.text },
+  errorText: { color: theme.error, fontSize: 12, marginTop: 5, fontWeight: 600 },
   saveButton: {
     backgroundColor: theme.primary, borderRadius: radius.m,
     paddingVertical: 13, alignItems: 'center', marginTop: 22, marginBottom: 30,

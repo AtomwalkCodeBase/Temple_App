@@ -143,7 +143,7 @@ export default function MonthAgendaDrawer({
 const styles = StyleSheet.create({
     backdrop: {
         ...StyleSheet.absoluteFill,
-        backgroundColor: 'rgba(4,44,83,0.4)',
+        backgroundColor: theme.themeOverlay,
     },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

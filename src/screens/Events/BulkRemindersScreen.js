@@ -93,9 +93,12 @@ function EventTypeSection({ navigation }) {
 
   const showModal = (type, title, message) =>
     setModal({ visible: true, type, title, message });
-  const hideModal = () =>
+  const hideModal = () => {
     setModal((m) => ({ ...m, visible: false }));
-
+    setTimeout(() => {
+      navigation.navigate('MyEventsScreen', { presetReligiousFilter: eventType });
+    }, 3000);
+  }
   const toggleReminder = (minutes) =>
     setReminders((r) => (r.includes(minutes) ? r.filter((m) => m !== minutes) : [...r, minutes]));
 
@@ -273,13 +276,12 @@ function WeekdaySeriesSection({ navigation }) {
       });
       for (const ev of res.events) {
         await scheduleEventReminders(
-          { id: ev.id, title: title.trim(), event_date: ev.event_date, start_time: null },
-          reminders);
+          { id: ev.id, title: title.trim(), event_date: ev.event_date, start_time: null }, reminders);
       }
       showModal('success', 'Reminders set', `Added ${res.created_count} reminder(s).`);
       setTimeout(() => {
         navigation.navigate('MyEventsScreen', { presetTypeFilter: 'OTHER' });
-      }, 3000); a
+      }, 3000);
     } catch (e) {
       showModal('error', 'Could not create series', e.message);
     } finally {

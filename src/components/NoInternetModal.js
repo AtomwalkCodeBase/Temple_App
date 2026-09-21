@@ -121,7 +121,7 @@ function WaitingDots() {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(51,40,31,0.5)',
+    backgroundColor: theme.themeOverlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,

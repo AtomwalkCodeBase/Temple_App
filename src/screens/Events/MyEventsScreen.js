@@ -16,6 +16,7 @@ import { theme, radius } from '../../theme/theme';
 import Screen from '../../components/Screen';
 import FloatingActionMenu from '../../components/FloatingActionMenu';
 import TempleIcon from '../../assets/TempleIcon';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 
@@ -119,6 +120,11 @@ export default function MyEventsScreen() {
     setRefreshing(true);
     await load();
     setRefreshing(false);
+    setSearch('');
+    setFilter('ALL');
+    setReligiousTypeFilter('ALL');
+    setTypeFilter('ALL');
+    setSkipMonthFilter(false);
   };
 
 
@@ -391,6 +397,7 @@ function EventRow({ event, isToday, onPress }) {
 
 // ── new component: bottom sheet with both filter groups, applied together
 function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter, monthFilter, onApply }) {
+  const insets = useSafeAreaInsets();
   const [draftFilter, setDraftFilter] = useState(filter);
   const [draftType, setDraftType] = useState(typeFilter);
   const [draftReligious, setDraftReligious] = useState(religiousTypeFilter);
@@ -411,7 +418,7 @@ function FilterSheet({ visible, onClose, filter, typeFilter, religiousTypeFilter
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetOverlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
           <View style={styles.sheetHandle} />
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.sheetTitle}>Filter events</Text>
@@ -604,15 +611,15 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3, borderLeftColor: 'transparent',
   },
   rowToday: {
-    borderLeftColor: theme.accent,
-    backgroundColor: theme.accentTint + '30',
+    borderLeftColor: theme.primary,
+    backgroundColor: theme.primaryTint + '30',
   },
-  sectionHeaderToday: { color: theme.accent },
+  sectionHeaderToday: { color: theme.primary },
   todayBox: {
     width: 38, alignItems: 'center', justifyContent: 'center',
   },
   todayBoxText: {
-    fontSize: 9, fontWeight: '700', color: theme.accent, letterSpacing: 0.3,
+    fontSize: 9, fontWeight: '700', color: theme.primary, letterSpacing: 0.3,
   },
 
 
@@ -701,7 +708,7 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: theme.surface, borderTopLeftRadius: radius.l, borderTopRightRadius: radius.l,
-    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 28, maxHeight: '75%',
+    paddingHorizontal: 16, paddingTop: 10, maxHeight: '75%',
   },
   monthStepper: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

@@ -71,7 +71,6 @@ function ProfileStack({ onSignOut }) {
       {/* <Stack.Screen name="SongsList" component={SongsListScreen} /> */}
       {/* <Stack.Screen name="CommunityDetail" component={ExploreScreen} /> */}
       {/* <Stack.Screen name="GroupDetail" component={ExploreScreen} /> */}
-      <Stack.Screen name="BulkReminders" component={BulkRemindersScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Stack.Navigator>
   );
@@ -125,6 +124,12 @@ function Tabs({ onSignOut }) {
       <Tab.Screen
         name="Today"
         component={HomeStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('Today', { screen: 'HomeScreen' });
+          },
+        })}
       />
 
       <Tab.Screen
@@ -141,11 +146,23 @@ function Tabs({ onSignOut }) {
       <Tab.Screen
         name="My Events"
         component={MyEventsStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('My Events', { screen: 'MyEventsScreen' });
+          },
+        })}
       />
 
       <Tab.Screen
         name="Profile"
         children={() => <ProfileStack onSignOut={onSignOut} />}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('Profile', { screen: 'ProfileScreen' });
+          },
+        })}
       />
     </Tab.Navigator>
   );
