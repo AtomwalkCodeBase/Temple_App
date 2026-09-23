@@ -159,7 +159,7 @@ export default function ProfileScreen({ onSignOut }) {
                     <View style={styles.divider} /> */}
 
 
-                    {/* <Row icon="🔔" label="Reminders" onPress={() => navigation.navigate('BulkReminders')} /> */}
+                    {/* <Row icon="🔔" label="Explore" onPress={() => navigation.navigate('Explore')} /> */}
                 </View>
 
 
@@ -432,8 +432,8 @@ const styles = StyleSheet.create({
         paddingTop: spacing.xxl + spacing.sm,
         paddingBottom: spacing.xxl,
         alignItems: 'center',
-        borderBottomLeftRadius: radius.l * 2,
-        borderBottomRightRadius: radius.l * 2,
+        // borderBottomLeftRadius: radius.l * 2,
+        // borderBottomRightRadius: radius.l * 2,
         overflow: 'hidden',
     },
     heroShapeOne: {

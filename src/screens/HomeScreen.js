@@ -153,7 +153,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) {
     return (
       <Screen>
-        <View style={[styles.center, { backgroundColor: theme.sky }]}>
+        <View style={[styles.center, { backgroundColor: theme.primary }]}>
           <ActivityIndicator color={theme.moon} size="large" />
         </View>
       </Screen>
@@ -198,8 +198,24 @@ export default function HomeScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* ---- Night sky hero ---- */}
+
+        <View style={styles.heroTop}>
+          <View>
+            <Text style={styles.greeting}>{getGreeting(day.user_language)}, {day.user_first_name}</Text>
+            <Text style={styles.heroDate}>{dayjs(day.date).format('dddd, D MMMM YYYY')}</Text>
+
+            <Pressable style={styles.locationChip} onPress={() => navigation.navigate('Settings')}>
+              <Ionicons name="location-outline" size={12} color='#fff' />
+              <Text style={styles.locationText}> {day.location_name}</Text>
+            </Pressable>
+          </View>
+
+          <Pressable style={styles.profileChip} onPress={() => navigation.navigate('Profile', { screen: 'ProfileScreen' })}>
+            <Ionicons name="person-circle-outline" size={20} color="#fff" />
+          </Pressable>
+        </View>
         <View style={styles.hero}>
-          <View style={styles.heroTop}>
+          {/* <View style={styles.heroTop}>
             <View>
               <Text style={styles.greeting}>{getGreeting(day.user_language)}, {day.user_first_name}</Text>
               <Text style={styles.heroDate}>{dayjs(day.date).format('dddd, D MMMM YYYY')}</Text>
@@ -210,10 +226,11 @@ export default function HomeScreen({ navigation }) {
               </Pressable>
             </View>
             <Pressable style={styles.profileChip}
-              onPress={() => navigation.navigate('Profile')}>
+              onPress={() => navigation.navigate('Profile', { screen: 'ProfileScreen' })}>
               <Ionicons name="person-circle-outline" size={20} color="#fff" />
             </Pressable>
-          </View>
+          </View> */}
+
 
           <View style={{ alignItems: 'center' }}>
             <MoonPhase
@@ -234,13 +251,13 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.metaLine}>
               {day.sunrise && (
                 <>
-                  <Ionicons name="sunny-outline" size={14} color={theme.skyLine} /> {day.sunrise}
+                  <Ionicons name="sunny-outline" size={14} color={theme.textOnPrimary} /> {day.sunrise}
                   {'   '}
                 </>
               )}
               {day.sunset && (
                 <>
-                  <Ionicons name="moon-outline" size={14} color={theme.skyLine} /> {day.sunset}
+                  <Ionicons name="moon-outline" size={14} color={theme.textOnPrimary} /> {day.sunset}
                 </>
               )}
               {daysToPurnima != null &&
@@ -361,9 +378,10 @@ const styles = StyleSheet.create({
   },
   retryButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   hero: { backgroundColor: theme.sky, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18 },
-  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  greeting: { color: theme.skyText, fontSize: 16, fontWeight: '600' },
-  heroDate: { color: theme.skyMuted, fontSize: 11, marginTop: 1 },
+  // heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.primary, paddingHorizontal: 18, paddingVertical: 14 },
+  greeting: { color: theme.skyText, fontSize: 18, fontWeight: '600' },
+  heroDate: { color: theme.textOnPrimary, fontSize: 12, marginTop: 1 },
   locationChip: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 5,
   },
@@ -371,11 +389,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.4)',
     borderRadius: 15, paddingHorizontal: 4, paddingVertical: 4,
   },
-  locationText: { color: theme.star, fontSize: 11 },
-  pakshaLine: { color: theme.skyMuted, fontSize: 12, marginTop: 6, textAlign: 'center', lineHeight: 16 },
+  locationText: { color: theme.textOnPrimary, fontSize: 12 },
+  pakshaLine: { color: theme.textOnPrimary, fontSize: 12, marginTop: 6, textAlign: 'center', lineHeight: 16 },
   tithiBig: { color: theme.skyText, fontSize: 30, fontWeight: '600', marginTop: 1 },
-  tithiSub: { color: theme.skyMuted, fontSize: 12, marginTop: 2 },
-  metaLine: { color: theme.skyLine, fontSize: fontSize.sm, marginTop: 9 },
+  tithiSub: { color: theme.textOnPrimary, fontSize: 12, marginTop: 2 },
+  metaLine: { color: theme.textOnPrimary, fontSize: fontSize.sm, marginTop: 9 },
   festivalBanner: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: theme.sacredTint, borderRadius: radius.m,

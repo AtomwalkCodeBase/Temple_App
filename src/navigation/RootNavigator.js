@@ -12,11 +12,14 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { theme } from '../theme/theme';
 import BulkRemindersScreen from '../screens/Events/BulkRemindersScreen';
-// import ExploreScreen from '../screens/ExploreScreen';
-// import CreateGroupScreen from '../screens/CreateGroupScreen';
-// import GodsScreen from '../screens/GodsScreen';
-// import SongsListScreen from '../screens/SongsListScreen';
-// import MiniPlayer from '../screens/MiniPlayer';
+// import ExploreScreen from '../screens/Explore/ExploreScreen';
+// import CreateGroupScreen from '../screens/Explore/CreateGroupScreen';
+// import GodsScreen from '../screens/Explore/GodsScreen';
+// import SongsListScreen from '../screens/Explore/SongsListScreen';
+// import MiniPlayer from '../screens/Explore/MiniPlayer';
+// import CommunitiesScreen from '../screens/Explore/CommunitiesScreen';
+// import GroupsScreen from '../screens/Explore/GroupsScreen';
+import FestivalsScreen from '../screens/Events/FestivalRemiderScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -46,6 +49,7 @@ function MyEventsStack() {
       <Stack.Screen name="AddEvent" component={AddEventScreen} options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />
       <Stack.Screen name="BulkReminders" component={BulkRemindersScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="FestivalReminders" component={FestivalsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -69,8 +73,8 @@ function ProfileStack({ onSignOut }) {
       {/* <Stack.Screen name="CreateGroup" component={CreateGroupScreen} /> */}
       {/* <Stack.Screen name="GodsScreen" component={GodsScreen} /> */}
       {/* <Stack.Screen name="SongsList" component={SongsListScreen} /> */}
-      {/* <Stack.Screen name="CommunityDetail" component={ExploreScreen} /> */}
-      {/* <Stack.Screen name="GroupDetail" component={ExploreScreen} /> */}
+      {/* <Stack.Screen name="CommunityDetail" component={CommunitiesScreen} /> */}
+      {/* <Stack.Screen name="GroupDetail" component={GroupsScreen} /> */}
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Stack.Navigator>
   );

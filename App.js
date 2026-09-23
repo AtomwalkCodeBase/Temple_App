@@ -7,11 +7,11 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { StatusBar } from 'expo-status-bar';
 import { registerPushToken } from './src/services/notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-// import { PlayerProvider } from './src/context/PlayerContext';
 import { UserProvider } from './src/context/UserContext';
 import { useColorScheme } from 'react-native';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import NoInternetModal from './src/components/NoInternetModal';
+// import { PlayerProvider } from './src/context/PlayerContext';
 
 export default function App() {
   const isConnected = useNetworkStatus();

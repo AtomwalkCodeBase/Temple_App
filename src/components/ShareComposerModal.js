@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
 
     messageHint: {
         fontSize: 11,
-        color: theme.textMuted,
+        color: theme.text,
     },
 
     shareMessageInput: {
@@ -993,6 +993,7 @@ const styles = StyleSheet.create({
     colorList: {
         gap: 10,
         paddingVertical: 4,
+        paddingLeft: 4
     },
 
     colorButton: {

@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, Image } from 'react-native';
 import AppText from '../components/AppText';
 import Screen from '../components/Screen';
-import theme, { spacing } from '../theme/theme';
+import { radius, spacing } from '../theme/theme';
 
 export default function SplashScreen({ onFinished }) {
 
@@ -20,7 +20,7 @@ export default function SplashScreen({ onFinished }) {
         resizeMode="contain"
         accessibilityLabel="App logo"
       />
-      <AppText variant="h2" style={{ marginTop: spacing.lg }}>
+      <AppText variant="h1" style={{ marginTop: spacing.lg }}>
         Agam Mandira
       </AppText>
       <AppText variant="bodySmall" color="textSecondary" style={{ marginTop: spacing.xs }}>
@@ -36,7 +36,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    width: 96,
-    height: 96,
+    width: 160,
+    height: 160,
+    borderRadius: radius.lg
   },
 });

@@ -95,9 +95,7 @@ function EventTypeSection({ navigation }) {
     setModal({ visible: true, type, title, message });
   const hideModal = () => {
     setModal((m) => ({ ...m, visible: false }));
-    setTimeout(() => {
-      navigation.navigate('MyEventsScreen', { presetReligiousFilter: eventType });
-    }, 3000);
+    navigation.navigate('MyEventsScreen', { presetReligiousFilter: eventType });
   }
   const toggleReminder = (minutes) =>
     setReminders((r) => (r.includes(minutes) ? r.filter((m) => m !== minutes) : [...r, minutes]));
@@ -262,6 +260,7 @@ function WeekdaySeriesSection({ navigation }) {
     const cb = modal.onClose;
     setModal((m) => ({ ...m, visible: false, onClose: null }));
     cb?.();
+    navigation.navigate('MyEventsScreen', { presetTypeFilter: 'OTHER' });
   };
 
   const toggleReminder = (minutes) =>

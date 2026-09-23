@@ -14,12 +14,15 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 import MoonPhase from '../components/MoonPhase';
-import { getDayPanchang, listUserEvents, getTithiStrip, getMonthsEvents } from '../services/api';
+import { getDayPanchang, listUserEvents, getTithiStrip, getMonthsEvents, untrackReligiousEvent, trackReligiousEvent } from '../services/api';
 import { theme, radius, spacing, fontSize } from '../theme/theme';
 import Screen from '../components/Screen';
 import { useUser } from '../context/UserContext';
 import MonthAgendaDrawer from '../components/MonthAgendaDrawer';
-import { EVENT_TYPES } from '../constants/constant';
+import { EVENT_TYPES, REMINDER_OPTIONS } from '../constants/constant';
+import { cancelEventReminders, scheduleEventReminders } from '../services/notifications';
+import StatusModal from '../components/StatusModal';
+import { extractErrorMessage } from '../utils/date';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CELL_SIZE = Math.floor((SCREEN_WIDTH - 32) / 7);
@@ -38,6 +41,12 @@ export default function MonthScreen({ navigation, route }) {
   const [weekCursor, setWeekCursor] = useState(focusDate.startOf('week'));
   const [selectedDate, setSelectedDate] = useState(focusDate.format('YYYY-MM-DD'));
 
+  const [trackedMap, setTrackedMap] = useState({}); // code -> { is_tracked, user_event_id }
+  const [expandedCode, setExpandedCode] = useState(null);
+  const [reminderSelections, setReminderSelections] = useState({});
+  const [busyCodes, setBusyCodes] = useState({});
+  const [statusModal, setStatusModal] = useState({ visible: false, type: 'error', title: '', message: '' });
+
   const [monthDays, setMonthDays] = useState({}); // { 'YYYY-MM': [...tithi days] }
   const [upcomingFestivals, setUpcomingFestivals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +62,9 @@ export default function MonthScreen({ navigation, route }) {
   const preferenceKey = profile
     ? [profile.language, profile.preferred_calendar, profile.preferred_location].join('|')
     : null;
+
+  const showStatus = (type, title, message) => setStatusModal({ visible: true, type, title, message });
+  const hideStatus = () => setStatusModal((prev) => ({ ...prev, visible: false }));
 
   // ---- personal events (list) ----
   useFocusEffect(
@@ -123,6 +135,74 @@ export default function MonthScreen({ navigation, route }) {
   useEffect(() => {
     if (locationId) loadDayDetail(selectedDate);
   }, [selectedDate, locationId, loadDayDetail]);
+
+  const openReminderPicker = (code) => {
+    setReminderSelections((prev) => ({ ...prev, [code]: prev[code] ?? [1440] }));
+    setExpandedCode(code);
+  };
+
+  const toggleReminderOption = (code, minutes) => {
+    setReminderSelections((prev) => {
+      const current = prev[code] ?? [1440];
+      const next = current.includes(minutes) ? current.filter((m) => m !== minutes) : [...current, minutes];
+      return { ...prev, [code]: next };
+    });
+  };
+
+  const confirmAddToCalendar = async (f) => {
+    const minutes = reminderSelections[f.key] ?? [1440];
+    if (minutes.length === 0) {
+      showStatus('error', 'Pick a reminder', 'Select at least one reminder option.');
+      return;
+    }
+    if (busyCodes[f.key]) return;
+
+    setBusyCodes((prev) => ({ ...prev, [f.key]: true }));
+    try {
+      const created = await trackReligiousEvent(f.key, { reminder_minutes: minutes });
+      await scheduleEventReminders(
+        { id: created.id, title: created.title, event_date: created.event_date, start_time: created.start_time },
+        minutes
+      );
+      setTrackedMap((prev) => ({ ...prev, [f.key]: { is_tracked: true, user_event_id: created.id } }));
+      setExpandedCode(null);
+      showStatus('success', 'Added', `${f.name} added to your calendar.`);
+    } catch (e) {
+      console.log(e)
+      showStatus('error', 'Something went wrong', extractErrorMessage(e));
+    } finally {
+      setBusyCodes((prev) => { const n = { ...prev }; delete n[f.key]; return n; });
+    }
+  };
+
+  const removeFromCalendar = async (f) => {
+    if (busyCodes[f.key]) return;
+    const entry = trackedMap[f.key];
+    setBusyCodes((prev) => ({ ...prev, [f.key]: true }));
+    setTrackedMap((prev) => ({ ...prev, [f.key]: { ...entry, is_tracked: false } }));
+
+    try {
+      if (entry?.user_event_id) await cancelEventReminders(entry.user_event_id);
+      await untrackReligiousEvent(f.key);
+
+      // reset reminder picker state for this festival back to default
+      setReminderSelections((prev) => {
+        const next = { ...prev };
+        delete next[f.key];
+        return next;
+      });
+      setExpandedCode((prev) => (prev === f.key ? null : prev));
+    } catch (e) {
+      setTrackedMap((prev) => ({ ...prev, [f.key]: { ...entry, is_tracked: true } }));
+      showStatus('error', 'Something went wrong', extractErrorMessage(e));
+    } finally {
+      setBusyCodes((prev) => { const n = { ...prev }; delete n[f.key]; return n; });
+    }
+  };
+
+  const closeReminderPicker = (code) => {
+    setExpandedCode((prev) => (prev === code ? null : prev));
+  };
 
   const selectDate = (dateStr) => {
     setSelectedDate(dateStr);
@@ -233,92 +313,92 @@ export default function MonthScreen({ navigation, route }) {
         </View>
 
         {/* ---- Swipeable grid (month or week) ---- */}
-        <SwipeGrid
-          key={viewMode}
-          mode={viewMode}
-          onSwipe={(dir) => (viewMode === 'month' ? changeMonth(dir) : changeWeek(dir))}
-        >
-          {loading && monthCells.length === 0 ? (
-            <ActivityIndicator style={{ marginVertical: 30 }} color={theme.accent} />
-          ) : (
-            <>
-              <View style={styles.weekdayRow}>
-                {WEEKDAYS.map((w, i) => (
-                  <Text key={i} style={[styles.weekday, { width: CELL_SIZE }]}>{w}</Text>
-                ))}
-              </View>
-              <View style={styles.grid}>
-                {(() => {
-                  const cells = viewMode === 'month' ? monthCells : weekCells;
-                  const hasRealDays = cells.some((c) => c && c.date);
-
-                  if (!hasRealDays) {
-                    return (
-                      <View style={styles.emptyPlaceholder}>
-                        <Text style={styles.emptyPlaceholderText}>
-                          No data available
-                        </Text>
-                        <Text style={styles.emptyPlaceholderSubText}>
-                          {viewMode === 'month'
-                            ? 'No dates found for this month'
-                            : 'No dates found for this week'}
-                        </Text>
-                      </View>
-                    );
-                  }
-
-                  return cells.map((d, i) => {
-                    if (!d) return <View key={`blank-${i}`} style={{ width: CELL_SIZE, height: CELL_SIZE }} />;
-                    const dateStr = dayjs(d.date).format('YYYY-MM-DD');
-                    const isSelected = dateStr === selectedDate;
-                    return (
-                      <Pressable
-                        key={dateStr}
-                        onPress={() => selectDate(dateStr)}
-                        style={[
-                          styles.cell,
-                          { width: CELL_SIZE, height: viewMode === 'month' ? CELL_SIZE : CELL_SIZE + 14 },
-                          isSelected && styles.cellSelected,
-                          d.is_today && !isSelected && styles.cellToday,
-                        ]}
-                      >
-                        <MoonPhase
-                          tithiNumber={d.tithi_number}
-                          paksha={d.paksha}
-                          size={viewMode === 'month' ? 20 : 26}
-                          moonColor={d.has_festival ? theme.sacred : '#D3D1C7'}
-                          skyColor={isSelected ? theme.accentTint : theme.surface}
-                        />
-                        <Text style={[
-                          styles.cellDate,
-                          d.is_today && styles.cellDateToday,
-                          d.has_user_event && styles.cellDateUserEvent,
-                        ]}>
-                          {dayjs(d.date).date()}
-                        </Text>
-                        <View style={styles.cellDotRow}>
-                          {d.has_user_event && <View style={styles.eventDot} />}
-                        </View>
-                      </Pressable>
-                    );
-                  });
-                })()}
-              </View>
-            </>
-          )}
-        </SwipeGrid>
-
-        <View style={styles.legend}>
-          <Text style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: theme.sacred }]} /> Festival
-          </Text>
-          <Text style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: theme.accent }]} /> My event
-          </Text>
-        </View>
-
-        {/* ---- Everything below scrolls together: day panel + agenda ---- */}
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+          <SwipeGrid
+            key={viewMode}
+            mode={viewMode}
+            onSwipe={(dir) => (viewMode === 'month' ? changeMonth(dir) : changeWeek(dir))}
+          >
+            {loading && monthCells.length === 0 ? (
+              <ActivityIndicator style={{ marginVertical: 30 }} color={theme.accent} />
+            ) : (
+              <>
+                <View style={styles.weekdayRow}>
+                  {WEEKDAYS.map((w, i) => (
+                    <Text key={i} style={[styles.weekday, { width: CELL_SIZE }]}>{w}</Text>
+                  ))}
+                </View>
+                <View style={styles.grid}>
+                  {(() => {
+                    const cells = viewMode === 'month' ? monthCells : weekCells;
+                    const hasRealDays = cells.some((c) => c && c.date);
+
+                    if (!hasRealDays) {
+                      return (
+                        <View style={styles.emptyPlaceholder}>
+                          <Text style={styles.emptyPlaceholderText}>
+                            No data available
+                          </Text>
+                          <Text style={styles.emptyPlaceholderSubText}>
+                            {viewMode === 'month'
+                              ? 'No dates found for this month'
+                              : 'No dates found for this week'}
+                          </Text>
+                        </View>
+                      );
+                    }
+
+                    return cells.map((d, i) => {
+                      if (!d) return <View key={`blank-${i}`} style={{ width: CELL_SIZE, height: CELL_SIZE }} />;
+                      const dateStr = dayjs(d.date).format('YYYY-MM-DD');
+                      const isSelected = dateStr === selectedDate;
+                      return (
+                        <Pressable
+                          key={dateStr}
+                          onPress={() => selectDate(dateStr)}
+                          style={[
+                            styles.cell,
+                            { width: CELL_SIZE, height: viewMode === 'month' ? CELL_SIZE : CELL_SIZE + 14 },
+                            isSelected && styles.cellSelected,
+                            d.is_today && !isSelected && styles.cellToday,
+                          ]}
+                        >
+                          <MoonPhase
+                            tithiNumber={d.tithi_number}
+                            paksha={d.paksha}
+                            size={viewMode === 'month' ? 20 : 26}
+                            moonColor={d.has_festival ? theme.sacred : '#D3D1C7'}
+                            skyColor={isSelected ? theme.primaryTint : theme.surface}
+                          />
+                          <Text style={[
+                            styles.cellDate,
+                            d.is_today && styles.cellDateToday,
+                            d.has_user_event && styles.cellDateUserEvent,
+                          ]}>
+                            {dayjs(d.date).date()}
+                          </Text>
+                          <View style={styles.cellDotRow}>
+                            {d.has_user_event && <View style={styles.eventDot} />}
+                          </View>
+                        </Pressable>
+                      );
+                    });
+                  })()}
+                </View>
+              </>
+            )}
+          </SwipeGrid>
+
+          <View style={styles.legend}>
+            <Text style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: theme.sacred }]} /> Festival
+            </Text>
+            <Text style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: theme.accent }]} /> My event
+            </Text>
+          </View>
+
+          {/* ---- Everything below scrolls together: day panel + agenda ---- */}
           <DayPanel
             date={selectedDate}
             detail={selectedDetail}
@@ -327,6 +407,15 @@ export default function MonthScreen({ navigation, route }) {
             onFestivalPress={(code) => navigation.navigate('EventDetail', { code, date: selectedDate })}
             onEventPress={(userEventId) => navigation.navigate('EventDetail', { userEventId })}
             onAddEvent={() => navigation.navigate('AddEvent', { prefillDate: selectedDate })}
+            trackedMap={trackedMap}
+            expandedCode={expandedCode}
+            reminderSelections={reminderSelections}
+            busyCodes={busyCodes}
+            onOpenReminderPicker={openReminderPicker}
+            onToggleReminderOption={toggleReminderOption}
+            onConfirmAddToCalendar={confirmAddToCalendar}
+            onRemoveFromCalendar={removeFromCalendar}
+            onCloseReminderPicker={closeReminderPicker}
           />
         </ScrollView>
 
@@ -339,6 +428,16 @@ export default function MonthScreen({ navigation, route }) {
           onSelectDate={selectDate}
         />
       </View>
+
+      <StatusModal
+        visible={statusModal.visible}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        autoClose={statusModal.type === 'success'}
+        onPrimary={hideStatus}
+        onRequestClose={hideStatus}
+      />
     </Screen>
   );
 }
@@ -379,7 +478,10 @@ function SwipeGrid({ mode, onSwipe, children }) {
   );
 }
 
-function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPress, onAddEvent }) {
+function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPress, onAddEvent,
+  trackedMap, expandedCode, reminderSelections, busyCodes,
+  onOpenReminderPicker, onToggleReminderOption, onConfirmAddToCalendar, onRemoveFromCalendar, onCloseReminderPicker
+}) {
   const parseTime = (t) => dayjs(t, 'hh:mm A');
   const muhurtas = detail?.extra
     ? Object.entries(detail.extra).sort(([, a], [, b]) => parseTime(a.start_time).diff(parseTime(b.start_time)))
@@ -461,36 +563,124 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
           </Text>
 
           {/* Festival */}
-          {festivals.map((f) => (
-            <Pressable key={f.key} style={styles.festivalCard} onPress={() => onFestivalPress(f.key)}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.festivalTitle}>{f.name}</Text>
-                <Text style={styles.festivalSub}>
-                  {f.name_local} · {f.importance === 'MAJOR' ? 'Major festival' : 'Festival'}
-                </Text>
+          {festivals.map((f) => {
+            const tracked = trackedMap[f.key]?.is_tracked;
+            const busy = !!busyCodes[f.key];
+            const expanded = expandedCode === f.key;
+            const selectedMinutes = reminderSelections[f.key] ?? [1440];
 
-                {f.isMultiDay ? (
-                  <View style={{ marginTop: 4, gap: 2 }}>
-                    {f.from && (
-                      <Text style={styles.festivalTiming}>
-                        <Text style={styles.festivalTimingLabel}>From  </Text>
-                        {f.from.date} · {f.from.time}
-                      </Text>
-                    )}
-                    {f.to && (
-                      <Text style={styles.festivalTiming}>
-                        <Text style={styles.festivalTimingLabel}>To      </Text>
-                        {f.to.date} · {f.to.time}
-                      </Text>
+            return (
+              <View key={f.key} style={styles.festivalCard}>
+                <Pressable style={styles.festivalCardRow} onPress={() => onFestivalPress(f.key)}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.festivalTitle}>{f.name}</Text>
+                    <Text style={styles.festivalSub}>
+                      {f.name_local} · {f.importance === 'MAJOR' ? 'Major festival' : 'Festival'}
+                    </Text>
+
+                    {f.isMultiDay ? (
+                      <View style={{ marginTop: 4, gap: 2 }}>
+                        {f.from && (
+                          <Text style={styles.festivalTiming}>
+                            <Text style={styles.festivalTimingLabel}>From  </Text>
+                            {f.from.date} · {f.from.time}
+                          </Text>
+                        )}
+                        {f.to && (
+                          <Text style={styles.festivalTiming}>
+                            <Text style={styles.festivalTimingLabel}>To      </Text>
+                            {f.to.date} · {f.to.time}
+                          </Text>
+                        )}
+                      </View>
+                    ) : (
+                      f.singleLine && <Text style={styles.festivalTiming}>{f.singleLine}</Text>
                     )}
                   </View>
-                ) : (
-                  f.singleLine && <Text style={styles.festivalTiming}>{f.singleLine}</Text>
-                )}
+                  <Ionicons name="chevron-forward" size={16} color={theme.sacredMuted} />
+                </Pressable>
+
+                <View style={{ flexDirection: 'row', gap: '8', flexWrap: 'wrap' }}>
+                  <Pressable
+                    style={[styles.calendarPill, tracked && styles.calendarPillActive]}
+                    disabled={busy}
+                    onPress={() => (tracked ? onRemoveFromCalendar(f) : onOpenReminderPicker(f.key))}
+                  >
+                    <Ionicons
+                      name={tracked ? 'checkmark-circle' : 'calendar-outline'}
+                      size={14}
+                      color={tracked ? theme.textOnPrimary : theme.sacredMuted}
+                    />
+                    <Text style={[styles.calendarPillText, tracked && styles.calendarPillTextActive]}>
+                      {tracked ? 'Added to calendar' : 'Add to calendar'}
+                    </Text>
+                  </Pressable>
+
+                  {tracked &&
+                    <Pressable
+                      style={[styles.calendarPill, styles.reminderCloseBtn]}
+                      disabled={busy}
+                      onPress={() => onRemoveFromCalendar(f)}
+                    >
+                      <Ionicons
+                        name='close'
+                        size={14}
+                        color={theme.error}
+                      />
+                      <Text style={styles.reminderCloseText}>
+                        Untrack from my Calendar
+                      </Text>
+                    </Pressable>}
+
+                </View>
+
+                {
+                  expanded && (
+                    <View style={styles.reminderInline}>
+                      <View style={styles.reminderHeaderRow}>
+                        <Text style={styles.reminderHeaderText}>Remind me</Text>
+                        {/* <Pressable hitSlop={8} onPress={() => onCloseReminderPicker(f.key)}>
+                        <Ionicons name="close" size={16} color={theme.textMuted} />
+                      </Pressable> */}
+                      </View>
+                      <View style={styles.reminderChipRow}>
+                        {REMINDER_OPTIONS.map((opt) => {
+                          const on = selectedMinutes.includes(opt.minutes);
+                          return (
+                            <Pressable
+                              key={opt.minutes}
+                              style={[styles.reminderChip, on && styles.reminderChipActive]}
+                              onPress={() => onToggleReminderOption(f.key, opt.minutes)}
+                            >
+                              <Text style={[styles.reminderChipText, on && styles.reminderChipTextActive]}>{opt.label}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <Pressable
+                          style={[styles.reminderConfirmBtn, busy && { opacity: 0.6 }]}
+                          disabled={busy}
+                          onPress={() => onConfirmAddToCalendar(f)}
+                        >
+                          <Text style={styles.reminderConfirmText}>{busy ? 'Adding...' : 'Confirm'}</Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.reminderCloseBtn}
+                          disabled={busy}
+                          onPress={() => onCloseReminderPicker(f.key)}
+                        >
+                          <Text style={styles.reminderCloseText}>Close</Text>
+                        </Pressable>
+                      </View>
+
+                    </View>
+                  )
+                }
               </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.sacredMuted} />
-            </Pressable>
-          ))}
+            );
+          })}
 
           {/* Personal events */}
           {dayEvents.length > 0 ? (
@@ -551,8 +741,9 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
             </View>
           )}
         </>
-      )}
-    </View>
+      )
+      }
+    </View >
   );
 }
 
@@ -587,7 +778,7 @@ const styles = StyleSheet.create({
   weekday: { textAlign: 'center', fontSize: 11, color: theme.textMuted },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16 },
   cell: { alignItems: 'center', justifyContent: 'center', borderRadius: radius.s, marginVertical: 1 },
-  cellSelected: { backgroundColor: theme.accentTint, borderWidth: 1.5, borderColor: theme.accent },
+  cellSelected: { backgroundColor: theme.primaryTint, borderWidth: 1.5, borderColor: theme.primary },
   cellToday: { backgroundColor: theme.sacredTint },
   cellDate: { fontSize: 11, color: theme.text, marginTop: 1 },
   cellDateToday: { color: theme.sacredMuted, fontWeight: '700' },
@@ -608,10 +799,11 @@ const styles = StyleSheet.create({
   panelTithi: { fontSize: 12, color: theme.textMuted, marginTop: 2, marginBottom: 10 },
 
   festivalCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.sacredTint,
+    backgroundColor: theme.sacredTint,
     borderLeftWidth: 3, borderLeftColor: theme.sacred,
     borderRadius: radius.m, padding: 12, marginBottom: 8,
   },
+  festivalCardRow: { flexDirection: 'row', alignItems: 'center' },
   festivalTitle: { fontSize: fontSize.lg, fontWeight: '600', color: theme.sacredText },
   festivalSub: { fontSize: fontSize.sm, color: theme.sacredMuted, marginTop: 1 },
   festivalTimingLabel: { fontWeight: '700', color: theme.sacredText },
@@ -677,5 +869,44 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.textMuted || '#999',
     textAlign: 'center',
+  },
+  calendarPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    marginTop: 8, paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: radius.pill, borderWidth: 1, borderColor: theme.sacredMuted,
+    backgroundColor: theme.surface,
+    flexShrink: 1,
+  },
+  calendarPillActive: { backgroundColor: theme.sacred, borderColor: theme.sacred },
+  calendarPillText: { fontSize: fontSize.xs, fontWeight: '600', color: theme.sacredMuted },
+  calendarPillTextActive: { color: theme.textOnPrimary },
+
+  reminderInline: { marginTop: 10, gap: 8 },
+  reminderChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  reminderChip: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+    backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border,
+  },
+  reminderChipActive: { backgroundColor: theme.sacred, borderColor: theme.sacred },
+  reminderChipText: { fontSize: fontSize.xs, fontWeight: '600', color: theme.textMuted },
+  reminderChipTextActive: { color: theme.textOnPrimary },
+
+  reminderConfirmBtn: {
+    alignSelf: 'flex-start', backgroundColor: theme.sacredMuted,
+    borderRadius: radius.m, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  reminderCloseBtn: {
+    alignSelf: 'flex-start', backgroundColor: theme.errorTint, borderColor: theme.error, borderWidth: 1,
+    borderRadius: radius.m, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  reminderCloseText: { color: theme.error, fontSize: fontSize.xs, fontWeight: '700' },
+  reminderConfirmText: { color: theme.textOnPrimary, fontSize: fontSize.xs, fontWeight: '700' },
+  reminderHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reminderHeaderText: { fontSize: fontSize.xs, fontWeight: '700', color: theme.sacredMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
+  untrackPillText: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: theme.errorText,
+    flexShrink: 1,
   },
 });

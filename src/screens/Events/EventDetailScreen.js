@@ -219,7 +219,7 @@ function FestivalDetail({ navigation, route }) {
                   <Pressable key={opt.minutes} style={styles.checkboxRow}
                     onPress={() => toggleReminder(opt.minutes)} disabled={busy}>
                     <Ionicons name={on ? 'checkbox' : 'square-outline'} size={18}
-                      color={on ? theme.accent : theme.textMuted} />
+                      color={on ? theme.primary : theme.textMuted} />
                     <Text style={styles.checkboxLabel}>{'  '}{opt.label}</Text>
                   </Pressable>
                 );
@@ -603,10 +603,10 @@ function Loading() {
 }
 
 const styles = StyleSheet.create({
-  heroDark: { backgroundColor: theme.sky, padding: 16, paddingBottom: 20 },
-  heroDate: { color: theme.skyMuted, fontSize: 11 },
+  heroDark: { backgroundColor: theme.primary, padding: 16, paddingBottom: 20 },
+  heroDate: { color: theme.textOnPrimary, fontSize: 11 },
   heroTitle: { color: theme.skyText, fontSize: 21, fontWeight: '700', marginTop: 2 },
-  heroSub: { color: theme.skyMuted, fontSize: 13, marginTop: 1 },
+  heroSub: { color: theme.textOnPrimary, fontSize: 13, marginTop: 1 },
   importanceBadge: { backgroundColor: theme.sacredTint, borderRadius: 10, alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 9, paddingVertical: 3 },
   importanceBadgeText: { color: theme.sacredText, fontSize: 11, fontWeight: '600' },
   descriptionHeading: { color: theme.text, fontSize: 21, fontWeight: '700', marginTop: 2 },
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
   cardSub: { fontSize: 12, color: theme.textMuted },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 },
   toggle: { width: 44, height: 24, borderRadius: 12, backgroundColor: theme.border, padding: 2 },
-  toggleOn: { backgroundColor: theme.accent },
+  toggleOn: { backgroundColor: theme.primary },
   toggleKnob: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
   toggleKnobOn: { marginLeft: 20 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },

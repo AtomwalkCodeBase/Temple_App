@@ -59,3 +59,17 @@ export function formatTime(date) {
 }
 
 export { MONTH_NAMES };
+
+
+export function extractErrorMessage(e) {
+  const raw = e?.message || 'Something went wrong';
+  const jsonStart = raw.indexOf('{');
+  if (jsonStart === -1) return raw;
+
+  try {
+    const parsed = JSON.parse(raw.slice(jsonStart));
+    return parsed.detail || raw;
+  } catch {
+    return raw;
+  }
+}

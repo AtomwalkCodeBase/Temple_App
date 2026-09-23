@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { BlurView } from 'expo-blur';
 import { theme, radius } from '../theme/theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -57,7 +58,13 @@ export default function FloatingActionMenu({ actions = [], bottomOffset }) {
 
     return (
         <>
-            {open && <Pressable style={StyleSheet.absoluteFill} onPress={close} />}
+            {mounted && (
+                <Animated.View style={[StyleSheet.absoluteFill, { opacity: anim, zIndex: 10 }]}>
+                    <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill}>
+                        <Pressable style={StyleSheet.absoluteFill} onPress={close} />
+                    </BlurView>
+                </Animated.View>
+            )}
 
             <View style={[styles.container, { bottom }]} pointerEvents="box-none">
                 <View style={styles.row} pointerEvents="box-none">
