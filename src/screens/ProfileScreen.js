@@ -1,6 +1,7 @@
 // ProfileScreen.js
 import React, { useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Share } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, Share, ActivityIndicator, Alert, Platform, Linking } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { theme, spacing, radius } from '../theme/theme';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +12,10 @@ import { useUser } from '../context/UserContext';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import ResettableScrollView from '../components/ResettableScrollView';
 import Constants from 'expo-constants';
+import { File } from 'expo-file-system';
+import { updateMyProfile } from '../services/api';
+import StatusModal from '../components/StatusModal';
+import { DEFAULT_AVATAR_PATHS } from '../constants/constant';
 
 
 const APP_SHARE_URL = ' https://play.google.com/store/apps/details?id=com.agam.app'; // TODO: replace with real link/deep link
@@ -39,11 +44,14 @@ function Row({ icon, label, value, onPress, danger, highlight }) {
 
 
 export default function ProfileScreen({ onSignOut }) {
-
-
     const navigation = useNavigation();
-    const { profile } = useUser();
+    const { profile, refreshProfile } = useUser();
     const [showSignOut, setShowSignOut] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [modalDetails, setModalDetails] = useState({ visible: false, title: "", message: "" });
+
+    const closeStatusModal = () => setModalDetails({ visible: false, title: "", message: "" });
+    const showStatusModal = (title, message) => { setModalDetails({ visible: true, title, message }); };
 
 
     const handleSignOut = async () => {
@@ -51,30 +59,90 @@ export default function ProfileScreen({ onSignOut }) {
         onSignOut?.();
     };
 
-
     const handleInvite = async () => {
+        const message =
+            `I've been using Agam Mandira for daily panchang, tithis & festival reminders — thought you'd like it too.\n\n` +
+            `📲 Download the app: ${APP_SHARE_URL}\n` +
+            `🌐 Visit our website: https://agamandira.com/`;
+
         try {
             await Share.share({
-                message: `I've been using Agam Mandira for daily panchang, tithis & festival reminders — thought you'd like it too. Download here: ${APP_SHARE_URL}`,
-                url: APP_SHARE_URL, // used on iOS
+                message,
+                url: APP_SHARE_URL,
                 title: 'Try Agam Mandira',
             });
         } catch (e) {
-            console.warn(e);
+            console.warn('Share error:', e);
         }
+    };
+
+    const handleChangePhoto = async () => {
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (!permission.granted) {
+                showStatusModal("Permission required", "Please allow photo access to choose a background image.");
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (result.canceled || !result.assets?.length) {
+                return;
+            }
+
+            const asset = result.assets[0];
+
+            setUploadingPhoto(true);
+
+            try {
+                const file = new File(asset.uri);
+                const formData = new FormData();
+
+                formData.append('image', file);
+
+                await updateMyProfile(formData);
+
+                await refreshProfile();
+
+            } catch (error) {
+                console.error('Profile image upload error:', error);
+                showStatusModal('Upload Error', error?.message || 'Please try again.');
+            } finally {
+                setUploadingPhoto(false);
+            }
+
+        } catch (error) {
+            console.error('Image picker error:', error);
+            showStatusModal(
+                'Could not update profile picture',
+                error?.message || 'Please try again.'
+            );
+        }
+    };
+
+    const handleVisitWebsite = () => {
+        Linking.openURL('https://agamandira.com/').catch((e) => {
+            console.warn('Could not open website:', e);
+        });
     };
 
 
     const languageLabel = LANGUAGES.find((l) => l.code === profile?.language)?.label || '—';
     const panjiLabel = profile ? `${profile.calendar_name} · ${profile.location_name}` : '—';
 
-
     const user = {
         name: profile?.first_name || 'Devotee',
         username: profile?.phone ? `${profile.phone}` : '',
-        avatar: profile?.avatar || null,
+        avatar: profile?.image || null,
     };
 
+    const hasProfileImage = user.avatar && !DEFAULT_AVATAR_PATHS.some((path) => user.avatar.includes(path));
 
     return (
         <Screen>
@@ -87,25 +155,26 @@ export default function ProfileScreen({ onSignOut }) {
                     ))}
                 </View>
 
-
-                {/* <Pressable style={styles.settingsBtn} onPress={() => navigation.navigate('Settings')} hitSlop={10}>
-                    <Ionicons name="settings-outline" size={18} color={theme.skyMuted} />
-                </Pressable> */}
-
-
-                <View style={styles.avatarRing}>
+                <Pressable style={styles.avatarRing} onPress={handleChangePhoto} disabled={uploadingPhoto}>
                     <View style={styles.avatarRingInner}>
-                        {user.avatar ? (
+                        {hasProfileImage ? (
                             <Image source={{ uri: user.avatar }} style={styles.avatar} />
                         ) : (
                             <View style={[styles.avatar, styles.avatarFallback]}>
-                                <Text style={styles.avatarInitial}>
+                                <Text style={styles.avatarInitial} numberOfLines={1}>
                                     {user.name?.charAt(0)?.toUpperCase() || 'D'}
                                 </Text>
                             </View>
                         )}
                     </View>
-                </View>
+                    <View style={styles.changePhotoBadge}>
+                        {uploadingPhoto ? (
+                            <ActivityIndicator size="small" color={theme.primary} />
+                        ) : (
+                            <Ionicons name="camera-outline" size={15} color={theme.primary} />
+                        )}
+                    </View>
+                </Pressable>
 
 
                 <Text style={styles.name}>{user.name}</Text>
@@ -133,7 +202,7 @@ export default function ProfileScreen({ onSignOut }) {
                     <View style={{ flex: 1 }}>
                         <Text style={styles.inviteTitle}>Invite Friends & Family</Text>
                         <Text style={styles.inviteSub}>
-                            Share tithis, festivals & reminders with people you care about
+                            Share events, tithis, festivals & reminders with people you care about
                         </Text>
                     </View>
                     <View style={styles.inviteArrow}>
@@ -153,6 +222,9 @@ export default function ProfileScreen({ onSignOut }) {
 
                     <Row icon="📍" label="Panji / Location  " value={panjiLabel} onPress={() => navigation.navigate('Settings', { section: 'panji' })} />
                     <View style={styles.divider} />
+
+                    <Row icon="🌐" label="Visit our Website" onPress={handleVisitWebsite} />
+                    {/* <View style={styles.divider} /> */}
 
 
                     {/* <Row icon="🎨" label="Theme" value={themes[activeThemeId]?.label || 'Default'} onPress={() => setThemeModalVisible(true)} />
@@ -196,6 +268,17 @@ export default function ProfileScreen({ onSignOut }) {
                     handleSignOut();
                 }}
                 onCancel={() => setShowSignOut(false)}
+            />
+
+            <StatusModal
+                visible={modalDetails.visible}
+                type="error"
+                title={modalDetails.title}
+                message={modalDetails.message}
+                primaryLabel="OK"
+                onPrimary={closeStatusModal}
+                onRequestClose={closeStatusModal}
+                autoClose={false}
             />
         </Screen>
     );
@@ -500,6 +583,19 @@ const styles = StyleSheet.create({
         backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    changePhotoBadge: {
+        position: 'absolute',
+        right: -2,
+        bottom: 1,
+        width: 30,
+        height: 30,
+        borderRadius: radius.pill,
+        backgroundColor: theme.moon,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: theme.primary,
     },
     moonBadge: {
         position: 'absolute',

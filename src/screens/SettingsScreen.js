@@ -94,7 +94,9 @@ export default function SettingsScreen({ onSignOut, route }) {
   const save = async (field, value) => {
     setSaving(field);
     try {
-      await updateMyProfile({ [field]: value });
+      const formData = new FormData();
+      formData.append(field, String(value));
+      await updateMyProfile(formData);
       if (field === 'preferred_location') {
         setSelectedLocation(value);
       }

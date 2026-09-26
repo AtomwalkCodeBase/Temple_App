@@ -14,7 +14,7 @@ import {
 } from '../../services/api';
 import { scheduleEventReminders, cancelEventReminders } from '../../services/notifications';
 import StatusModal from '../../components/StatusModal';
-import { REMINDER_OPTIONS } from '../../constants/constant';
+import { DEFAULT_AVATAR_PATHS, REMINDER_OPTIONS } from '../../constants/constant';
 import Header from '../../components/Header';
 import { extractErrorMessage } from '../../utils/date';
 
@@ -291,6 +291,7 @@ export default function FestivalsScreen({ navigation }) {
                                 const busy = !!trackingIds[item.code];
                                 const expanded = expandedCode === item.code;
                                 const selected = reminderSelections[item.code] ?? [1440];
+                                const hasImage = item.image && !DEFAULT_AVATAR_PATHS.some((path) => item.image.includes(path));
 
                                 return (
                                     <View key={item.id} style={[styles.card, { marginBottom: spacing.sm }, expanded && styles.cardExpanded]}>
@@ -299,7 +300,7 @@ export default function FestivalsScreen({ navigation }) {
                                             onPress={() => navigation.navigate('EventDetail', { code: item.code, date: item.date })}
                                         >
                                             <View style={styles.cardImageWrap}>
-                                                {item.image ? (
+                                                {hasImage ? (
                                                     <Image source={{ uri: item.image }} style={styles.cardImage} />
                                                 ) : (
                                                     <View style={styles.cardImageFallback}>

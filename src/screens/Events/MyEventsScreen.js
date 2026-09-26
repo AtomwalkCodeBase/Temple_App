@@ -17,9 +17,7 @@ import Screen from '../../components/Screen';
 import FloatingActionMenu from '../../components/FloatingActionMenu';
 import TempleIcon from '../../assets/TempleIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-
-
+import { DEFAULT_AVATAR_PATHS } from '../../constants/constant';
 
 const TYPE_LABEL = {
   PUJA: 'Puja', BRATA: 'Brata', FAMILY: 'Family',
@@ -78,7 +76,6 @@ export default function MyEventsScreen() {
 
 
   const PAST_PREVIEW_COUNT = 5;
-
 
   useFocusEffect(useCallback(() => {
     if (route.params?.presetFilter) {
@@ -252,6 +249,14 @@ export default function MyEventsScreen() {
           onPress={() => setFilterModalVisible(true)}
           onClear={clearFilters}
         /> */}
+
+        {hasActiveFilters && (
+          <Pressable style={styles.activeFilterPill} onPress={clearFilters}>
+            {/* <Ionicons name="funnel" size={12} color={theme.primary} /> */}
+            <Text style={styles.activeFilterPillText}>Clear Filter</Text>
+            <Ionicons name="close-circle" size={14} color={theme.primary} />
+          </Pressable>
+        )}
       </View>
       <FlatList
         ref={listRef}
@@ -349,9 +354,12 @@ function EventRow({ event, isToday, onPress }) {
   const isTracked = !!event.linked_religious_event;
   const isRecurring = event.recurrence_type && event.recurrence_type !== 'NONE';
 
+  // image priority: festival's own image when tracked, else the personal event's own image
+  const imageUrl = isTracked ? event.linked_religious_event?.image : event.image;
+  const hasImage = imageUrl && !DEFAULT_AVATAR_PATHS.some((path) => imageUrl.includes(path));
 
   return (
-    <Pressable style={[styles.row, isToday && styles.rowToday]} onPress={onPress}>
+    <Pressable style={[styles.card, isToday && styles.cardToday]} onPress={onPress}>
       {isToday ? (
         <View style={styles.todayBox}>
           <Text style={styles.todayBoxText}>TODAY</Text>
@@ -363,24 +371,19 @@ function EventRow({ event, isToday, onPress }) {
         </View>
       )}
 
-
-      <View
-        style={[
-          styles.typeIcon,
-          isTracked ? styles.typeIconFestival : styles.typeIconPersonal,
-        ]}
-      >
-        {!isTracked && event.event_type === 'TEMPLE_VISIT' ? (
-          <TempleIcon size={14} color={theme.primary} />
+      <View style={[styles.thumb, isTracked ? styles.thumbFestival : styles.thumbPersonal]}>
+        {hasImage ? (
+          <Image source={{ uri: imageUrl }} style={styles.thumbImage} resizeMode="cover" />
+        ) : !isTracked && event.event_type === 'TEMPLE_VISIT' ? (
+          <TempleIcon size={16} color={theme.primary} />
         ) : (
           <Ionicons
             name={isTracked ? 'flag-outline' : (TYPE_ICON[event.event_type] || 'ellipse-outline')}
-            size={15}
+            size={17}
             color={isTracked ? theme.sacredMuted : theme.primary}
           />
         )}
       </View>
-
 
       <View style={{ flex: 1 }}>
         <Text style={styles.rowTitle} numberOfLines={1}>{event.title}</Text>
@@ -403,7 +406,6 @@ function EventRow({ event, isToday, onPress }) {
           )}
         </View>
       </View>
-
 
       {isRecurring && (
         <View style={styles.recurringBadge}>
@@ -760,5 +762,40 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 6, right: 6,
     width: 7, height: 7, borderRadius: 4, backgroundColor: theme.primary,
   },
+  avatar: {
+    width: 92,
+    height: 92,
+    borderRadius: radius.pill,
+    borderWidth: 3,
+    borderColor: theme.moon,
+  },
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 14, paddingVertical: 10, paddingHorizontal: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.border,
+    borderLeftWidth: 3, borderLeftColor: 'transparent',
+    // elevation: 1, shadowColor: theme.text, shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
+  },
+  cardToday: {
+    borderLeftColor: theme.primary,
+    backgroundColor: theme.primaryTint + '30',
+  },
+
+  thumb: {
+    width: 44, height: 44, borderRadius: radius.m,
+    justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden',
+  },
+  thumbImage: { width: '100%', height: '100%' },
+  thumbPersonal: { backgroundColor: theme.primaryTint },
+  thumbFestival: { backgroundColor: theme.sacredTint },
+  activeFilterPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: theme.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  activeFilterPillText: { fontSize: 11, fontWeight: '600', color: theme.primary },
 });
 

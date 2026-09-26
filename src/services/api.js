@@ -11,13 +11,14 @@ export const REGISTER_URL = `${BASE_URL}/auth/register/`;
 
 async function request(path, { method = 'GET', body } = {}) {
   const token = await AsyncStorage.getItem('auth_token');
+  const isFormData = body instanceof FormData;
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
-      'Content-Type': 'application/json',
+      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Token ${token}` } : {}),
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
   });
   if (!res.ok) {
     const detail = await res.text();

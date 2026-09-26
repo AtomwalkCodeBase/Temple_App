@@ -5,7 +5,7 @@
 // - "This month" agenda (festivals + personal events) stays below, tap -> selects that date
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
-  View, Text, Pressable, ScrollView, ActivityIndicator,
+  View, Text, Image, Pressable, ScrollView, ActivityIndicator,
   StyleSheet, Dimensions, FlatList,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,7 +19,7 @@ import { theme, radius, spacing, fontSize } from '../theme/theme';
 import Screen from '../components/Screen';
 import { useUser } from '../context/UserContext';
 import MonthAgendaDrawer from '../components/MonthAgendaDrawer';
-import { EVENT_TYPES, REMINDER_OPTIONS } from '../constants/constant';
+import { DEFAULT_AVATAR_PATHS, EVENT_TYPES, REMINDER_OPTIONS } from '../constants/constant';
 import { cancelEventReminders, scheduleEventReminders } from '../services/notifications';
 import StatusModal from '../components/StatusModal';
 import { extractErrorMessage } from '../utils/date';
@@ -337,7 +337,7 @@ export default function MonthScreen({ navigation, route }) {
                       return (
                         <View style={styles.emptyPlaceholder}>
                           <Text style={styles.emptyPlaceholderText}>
-                            No data available
+                            Dates are not setup
                           </Text>
                           <Text style={styles.emptyPlaceholderSubText}>
                             {viewMode === 'month'
@@ -511,6 +511,7 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
           key: first.code,
           name,
           name_local: first.name_local,
+          image: first.image,
           importance: first.importance,
           isMultiDay: false,
           singleLine: range, // e.g. "6:00 AM – 7:00 PM", or just one time, or null
@@ -531,6 +532,7 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
         key: `${first.code}`,
         name,
         name_local: first.name_local,
+        image: first.image,
         importance: first.importance,
         isMultiDay: true,
         from: day1.start_time ? { date: fromDate.format("ddd, D MMM"), time: formatTime(day1.start_time) } : null,
@@ -569,10 +571,15 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
             const expanded = expandedCode === f.key;
             const selectedMinutes = reminderSelections[f.key] ?? [1440];
 
+            const hasImage = f.image && !DEFAULT_AVATAR_PATHS.some((path) => f.image.includes(path));
+
             return (
               <View key={f.key} style={styles.festivalCard}>
                 <Pressable style={styles.festivalCardRow} onPress={() => onFestivalPress(f.key)}>
-                  <View style={{ flex: 1 }}>
+                  {hasImage && (
+                    <Image source={{ uri: f.image }} style={styles.festivalImage} resizeMode="cover" />
+                  )}
+                  <View style={{ flex: 1, paddingVertical: 2 }}>
                     <Text style={styles.festivalTitle}>{f.name}</Text>
                     <Text style={styles.festivalSub}>
                       {f.name_local} · {f.importance === 'MAJOR' ? 'Major festival' : 'Festival'}
@@ -803,7 +810,14 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3, borderLeftColor: theme.sacred,
     borderRadius: radius.m, padding: 12, marginBottom: 8,
   },
-  festivalCardRow: { flexDirection: 'row', alignItems: 'center' },
+  festivalImage: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.s,
+    marginRight: 10,
+    marginTop: 2
+  },
+  festivalCardRow: { flexDirection: 'row', alignItems: 'flex-start' },
   festivalTitle: { fontSize: fontSize.lg, fontWeight: '600', color: theme.sacredText },
   festivalSub: { fontSize: fontSize.sm, color: theme.sacredMuted, marginTop: 1 },
   festivalTimingLabel: { fontWeight: '700', color: theme.sacredText },

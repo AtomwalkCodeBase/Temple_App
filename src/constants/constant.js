@@ -123,3 +123,23 @@ export const MESSAGE_STYLES = [
             `\n\nShared from Agam Mandira`
     },
 ];
+
+export const COUNTRY_CODES = [
+    { code: '+91', name: 'India' },
+    { code: '+1', name: 'USA/Canada' },
+    { code: '+44', name: 'UK' },
+    { code: '+61', name: 'Australia' },
+    { code: '+971', name: 'UAE' },
+    { code: '+65', name: 'Singapore' },
+    { code: '+880', name: 'Bangladesh' },
+    { code: '+94', name: 'Sri Lanka' },
+    { code: '+977', name: 'Nepal' },
+];
+
+export const DEFAULT_AVATAR_PATHS = [
+    'PROFILE/user.png',
+    'media/TEMPLE_DB/PROFILE/user.png',
+    '/default_profile.jpg',
+    '/default_user_event.jpg',
+    '/default_religious.jpg'
+];

@@ -11,7 +11,7 @@ import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export default function LoginScreen({ onLoggedIn, onGoToRegister }) {
+export default function LoginScreen({ onLoggedIn, onGoToRegister, onGoToPhoneAuth }) {
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -161,6 +161,10 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister }) {
           disabled={busy}
         >
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
+        </Pressable>
+
+        <Pressable onPress={onGoToPhoneAuth} style={{ marginTop: spacing.lg }}>
+          <Text style={styles.link}>Forgot password?</Text>
         </Pressable>
 
         {hasSavedCreds && biometricSupported && (
