@@ -260,6 +260,24 @@ export default function HomeScreen({ navigation }) {
                   <Ionicons name="moon-outline" size={14} color={theme.textOnPrimary} /> {day.sunset}
                 </>
               )}
+
+              {/* {daysToPurnima != null &&
+                `   Purnima in ${daysToPurnima} day${daysToPurnima === 1 ? '' : 's'}`} */}
+            </Text>
+            <Text style={styles.metaLine}>
+              {day.moonrise && (
+                <>
+                  <Ionicons name="moon-outline" size={14} color={theme.textOnPrimary} />
+                  <Ionicons name="arrow-up" size={11} color={theme.textOnPrimary} /> {day.moonrise}
+                  {'   '}
+                </>
+              )}
+              {day.moonset && (
+                <>
+                  <Ionicons name="moon-outline" size={14} color={theme.textOnPrimary} />
+                  <Ionicons name="arrow-down" size={11} color={theme.textOnPrimary} /> {day.moonset}
+                </>
+              )}
               {daysToPurnima != null &&
                 `   Purnima in ${daysToPurnima} day${daysToPurnima === 1 ? '' : 's'}`}
             </Text>

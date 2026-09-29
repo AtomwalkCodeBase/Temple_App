@@ -551,6 +551,8 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
     return start || end || null;
   }
 
+  const tithiDisplay = detail?.tithi_local && detail?.tithi ? `${detail?.tithi_local} (${detail?.tithi})` : detail?.tithi_local || detail?.tithi || '';
+
   return (
     <View style={styles.panel}>
       <Text style={styles.panelDate}>{dayjs(date).format('dddd, D MMMM')}</Text>
@@ -560,7 +562,7 @@ function DayPanel({ date, detail, loading, dayEvents, onFestivalPress, onEventPr
       ) : (
         <>
           <Text style={styles.panelTithi}>
-            {detail.lunar_month} {detail.paksha} · {detail.tithi_local || detail.tithi}
+            {detail.lunar_month} {detail.paksha} ·  {tithiDisplay ? ` · ${tithiDisplay}` : ''}
             {detail.nakshatra ? ` · ${detail.nakshatra}` : ''}
           </Text>
 
@@ -802,8 +804,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.l, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border,
     padding: 14,
   },
-  panelDate: { fontSize: 15, fontWeight: '700', color: theme.text },
-  panelTithi: { fontSize: 12, color: theme.textMuted, marginTop: 2, marginBottom: 10 },
+  panelDate: { fontSize: fontSize.lg, fontWeight: '700', color: theme.text },
+  panelTithi: { fontSize: fontSize.base, color: theme.textMuted, marginTop: 2, marginBottom: 10 },
 
   festivalCard: {
     backgroundColor: theme.sacredTint,
