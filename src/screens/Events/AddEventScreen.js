@@ -15,6 +15,7 @@ import { theme, radius, spacing } from '../../theme/theme';
 import Screen from '../../components/Screen';
 import { EVENT_TYPES, REMINDER_OPTIONS } from '../../constants/constant';
 import StatusModal from '../../components/StatusModal';
+import Header from '../../components/Header';
 
 export default function AddEventScreen({ navigation, route, onSaved, }) {
   const params = route?.params ?? {};
@@ -182,7 +183,7 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
   return (
     <Screen edges={['top', 'left', 'right']}>
       {/* <ResettableScrollView> */}
-      <Header title={editing ? "Edit Event" : "Add Events"} />
+      <Header title={editing ? "Edit Event" : "Add Events"} onBack={() => navigation.goBack()} />
       <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16 }}>
         {track && (
           <View style={styles.trackNote}>
@@ -321,14 +322,6 @@ export default function AddEventScreen({ navigation, route, onSaved, }) {
       />
       {/* </ResettableScrollView> */}
     </Screen>
-  );
-}
-
-export function Header({ title }) {
-  return (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>{title}</Text>
-    </View>
   );
 }
 

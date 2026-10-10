@@ -1,12 +1,8 @@
-// EventDetailScreen.js — two variants driven by route.params:
-//   { code, date }        -> festival: track/untrack + reminder checkboxes
-//   { userEventId }       -> personal event: edit/delete/notes/participants
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, Pressable, ScrollView, Alert, ActivityIndicator,
   StyleSheet, TextInput, Share, FlatList,
 } from 'react-native';
-// import * as ImagePicker from 'expo-image-picker';
 import * as Contacts from 'expo-contacts/legacy';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
@@ -21,6 +17,7 @@ import { ShareComposerModal } from '../../components/ShareComposerModal';
 import { MESSAGE_STYLES, REMINDER_OPTIONS, SHARE_TEMPLATES } from '../../constants/constant';
 import ConfirmModal from '../../components/ConfirmModal';
 import StatusModal from '../../components/StatusModal';
+import Header from '../../components/Header';
 
 export default function EventDetailScreen({ navigation, route }) {
 
@@ -151,6 +148,7 @@ function FestivalDetail({ navigation, route }) {
   return (
     <Screen edges={['top', 'left', 'right']}>
 
+      <Header title={data.name} onBack={() => navigation.goBack()} />
       <ScrollView style={{ flex: 1, backgroundColor: theme.surface }}>
         <View style={styles.heroDark}>
           <Text style={styles.heroDate}>{dayjs(data.date).format('dddd, D MMMM YYYY')}</Text>
@@ -603,7 +601,7 @@ function Loading() {
 }
 
 const styles = StyleSheet.create({
-  heroDark: { backgroundColor: theme.primary, padding: 16, paddingBottom: 20 },
+  heroDark: { backgroundColor: theme.primary, padding: 16, paddingBottom: 20, paddingTop: 4 },
   heroDate: { color: theme.textOnPrimary, fontSize: 11 },
   heroTitle: { color: theme.skyText, fontSize: 21, fontWeight: '700', marginTop: 2 },
   heroSub: { color: theme.textOnPrimary, fontSize: 13, marginTop: 1 },

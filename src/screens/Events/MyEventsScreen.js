@@ -18,6 +18,7 @@ import FloatingActionMenu from '../../components/FloatingActionMenu';
 import TempleIcon from '../../assets/TempleIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DEFAULT_AVATAR_PATHS } from '../../constants/constant';
+import Header from '../../components/Header';
 
 const TYPE_LABEL = {
   PUJA: 'Puja', BRATA: 'Brata', FAMILY: 'Family',
@@ -211,7 +212,7 @@ export default function MyEventsScreen() {
   if (events.length === 0) {
     return (
       <Screen edges={['top', 'left', 'right']}>
-        <Header />
+        <Header title="My Events" onBack={() => navigation.goBack()} />
         <View style={styles.center}>
           <Ionicons name="calendar-outline" size={40} color={theme.textMuted} />
           <Text style={styles.emptyTitle}>No events yet</Text>
@@ -232,13 +233,15 @@ export default function MyEventsScreen() {
   return (
     <Screen edges={['top', 'left', 'right']}>
       <View style={{ backgroundColor: theme.primary, paddingHorizontal: 16, paddingBottom: 12, gap: 8, }}>
-        <Header />
-        <View style={styles.searchRow}>
-          <SearchBar value={search} onChange={setSearch} />
+        <Header title="My Events" onBack={() => navigation.goBack()} rightComponent={
           <Pressable style={styles.filterIconBtn} onPress={() => setFilterModalVisible(true)}>
             <Ionicons name="options-outline" size={18} color={theme.text} />
             {hasActiveFilters && <View style={styles.filterDot} />}
           </Pressable>
+        }
+        />
+        <View style={styles.searchRow}>
+          <SearchBar value={search} onChange={setSearch} />
         </View>
         {/* <FilterTrigger
           filter={filter}
@@ -316,16 +319,6 @@ export default function MyEventsScreen() {
     </Screen>
   );
 }
-
-
-function Header() {
-  return (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>My Events</Text>
-    </View>
-  );
-}
-
 
 // ── new component, alongside FilterBar
 function SearchBar({ value, onChange }) {
@@ -570,12 +563,6 @@ function FilterTrigger({ filter, typeFilter, religiousTypeFilter, monthFilter, s
 
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: theme.primary, paddingTop: 14, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: theme.skyText },
-
-
   filterBar: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 8,
     paddingHorizontal: 14, paddingVertical: 10,

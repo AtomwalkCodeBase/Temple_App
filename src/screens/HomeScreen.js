@@ -12,7 +12,7 @@ import TithiStrip from '../components/TithiStrip';
 import StatusModal from '../components/StatusModal';
 import { getAvailableLocations, getDayPanchang, getTithiStrip, getUpcomingEvents, updateMyProfile } from '../services/api';
 import { getGreeting } from '../services/i18n';
-import { theme, radius, fontSize } from '../theme/theme';
+import { theme, radius, fontSize, spacing } from '../theme/theme';
 import Screen from '../components/Screen';
 import { useUser } from '../context/UserContext';
 import ResettableScrollView from '../components/ResettableScrollView';
@@ -233,6 +233,11 @@ export default function HomeScreen({ navigation }) {
 
 
           <View style={{ alignItems: 'center' }}>
+            {!!profile.calendar_name && (
+              <Pressable style={styles.calendarTagWrap} onPress={() => navigation.navigate('Settings', { section: 'panji' })} hitSlop={8}>
+                <Text style={styles.calendarTag} numberOfLines={1}>{profile.calendar_name}</Text>
+              </Pressable>
+            )}
             <MoonPhase
               tithiNumber={day.tithi_number}
               paksha={day.paksha.toUpperCase()}
@@ -453,4 +458,11 @@ const styles = StyleSheet.create({
   },
   festivalBadge: { backgroundColor: theme.sacredTint },
   personalBadge: { backgroundColor: theme.accentTint },
+  calendarTagWrap: { position: 'absolute', top: 1, right: 1, maxWidth: '45%', zIndex: 2 },
+  calendarTag: {
+    color: '#fff', fontSize: 11, fontWeight: '600',
+    paddingHorizontal: spacing.sm, paddingVertical: 3,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden',
+  },
 });

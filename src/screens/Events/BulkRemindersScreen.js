@@ -19,6 +19,7 @@ import { scheduleEventReminders } from '../../services/notifications';
 import { theme, radius } from '../../theme/theme';
 import Screen from '../../components/Screen';
 import StatusModal from '../../components/StatusModal';
+import Header from '../../components/Header';
 
 const EVENT_TYPES = [
   { key: 'EKADASHI', label: 'Ekadashi' },
@@ -49,9 +50,7 @@ export default function BulkRemindersScreen({ navigation }) {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Set reminders</Text>
-      </View>
+      <Header title="Set reminders" onBack={() => navigation.goBack()} />
 
       <View style={styles.tabBar}>
         {TABS.map((t) => {

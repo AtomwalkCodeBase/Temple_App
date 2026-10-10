@@ -1,25 +1,64 @@
-// ProfileScreen.js
 import React, { useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Share, ActivityIndicator, Alert, Platform, Linking } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, ActivityIndicator, Linking, Share as RNShare } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { theme, spacing, radius } from '../theme/theme';
-import ConfirmModal from '../components/ConfirmModal';
 import { useNavigation } from '@react-navigation/native';
-import { LANGUAGES } from './SettingsScreen';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Screen from '../components/Screen';
-import { useUser } from '../context/UserContext';
-import Ionicons from '@react-native-vector-icons/ionicons';
-import ResettableScrollView from '../components/ResettableScrollView';
 import Constants from 'expo-constants';
 import { File } from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Ionicons from '@react-native-vector-icons/ionicons';
+import { Asset } from 'expo-asset';
+
 import { updateMyProfile } from '../services/api';
-import StatusModal from '../components/StatusModal';
 import { DEFAULT_AVATAR_PATHS } from '../constants/constant';
+import { LANGUAGES } from './SettingsScreen';
 
+import { theme, spacing, radius } from '../theme/theme';
+import { useUser } from '../context/UserContext';
+import Screen from '../components/Screen';
+import ResettableScrollView from '../components/ResettableScrollView';
+import StatusModal from '../components/StatusModal';
+import ConfirmModal from '../components/ConfirmModal';
 
-const APP_SHARE_URL = ' https://play.google.com/store/apps/details?id=com.agam.app'; // TODO: replace with real link/deep link
+const APP_SHARE_URL = ' https://play.google.com/store/apps/details?id=com.agam.app';
+const WEBSITE_URL = 'https://agamandira.com/';
 const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
+
+const INVITE_TARGETS = [
+    {
+        key: 'friends',
+        label: 'Friends',
+        icon: '🤝',
+        title: 'Try Agam Mandira',
+        intro: `Check out Agamandira, an app that helps you stay connected with your spiritual and cultural traditions.
+
+Explore daily Panchang, Tithi, upcoming festivals, and monthly calendars. Set reminders for important occasions, create personal events, and invite family members to celebrate together.
+
+Give it a try — I hope you find it useful!`,
+    },
+    {
+        key: 'family',
+        label: 'Family',
+        icon: '👨‍👩‍👧',
+        title: 'Agam Mandira for our family',
+        intro: `Stay connected with our traditions with Agam Mandira!
+
+The app provides daily Panchang, Tithi information, upcoming festival dates, and a monthly calendar. It also helps us remember pujas and important occasions through reminders. We can create events for family functions and invite family members to keep everyone updated.
+
+Give it a try and make planning our family occasions easier!`,
+    },
+    {
+        key: 'community',
+        label: 'Community',
+        icon: '🙏',
+        title: 'Agam Mandira for our community',
+        intro: `Sharing Agam Mandira, a helpful app for keeping track of important spiritual dates and festivals.
+
+Check daily Panchang, explore upcoming festivals, and set reminders for important occasions. You can also create events and invite family members to keep everyone informed.
+
+Give it a try and plan ahead with ease!`,
+    },
+];
+
 
 
 // Simple row for settings-style list items
@@ -59,20 +98,120 @@ export default function ProfileScreen({ onSignOut }) {
         onSignOut?.();
     };
 
-    const handleInvite = async () => {
+    const handleInvite = async (target) => {
         const message =
-            `I've been using Agam Mandira for daily panchang, tithis & festival reminders — thought you'd like it too.\n\n` +
-            `📲 Download the app: ${APP_SHARE_URL}\n` +
-            `🌐 Visit our website: https://agamandira.com/`;
+            `${target.intro}\n\n` +
+            `📲 Download on Android: ${APP_SHARE_URL}\n\n` +
+            `🌐 Website: ${WEBSITE_URL}\n\n` +
+            `✨ Developed by Atomwalk Technologies`;
 
+        const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+        if (isExpoGo) {
+            try {
+                await RNShare.share({
+                    message,
+                    title: target.title,
+                });
+            } catch (error) {
+                console.warn('Expo Go share error:', error);
+            }
+
+            return;
+        }
+
+        // ==================================================
+        // REAL / DEVELOPMENT / PRODUCTION BUILD
+        // ==================================================
         try {
-            await Share.share({
-                message,
-                url: APP_SHARE_URL,
-                title: 'Try Agam Mandira',
-            });
-        } catch (e) {
-            console.warn('Share error:', e);
+            // Load RNShare ONLY in a native build.
+            // Do NOT put this import at the top of the file.
+            let NativeShare = null;
+
+            try {
+                NativeShare = require('react-native-share').default;
+            } catch (nativeModuleError) {
+                console.warn('RNShare native module is not available:', nativeModuleError);
+            }
+
+            // ------------------------------------------------
+            // Try to prepare the logo
+            // ------------------------------------------------
+            let logoUri = null;
+
+            try {
+                const asset = Asset.fromModule(require('../assets/icon.png'));
+                await asset.downloadAsync();
+
+                if (asset.localUri) {
+                    logoUri = asset.localUri;
+                }
+            } catch (imageError) {
+                console.warn('Could not prepare Agam Mandira logo:', imageError);
+            }
+
+            // ------------------------------------------------
+            // RNShare available
+            // ------------------------------------------------
+            if (NativeShare) {
+                // First try image + text
+                if (logoUri) {
+                    try {
+                        await NativeShare.open({
+                            title: target.title,
+                            message,
+                            url: logoUri,
+                            type: 'image/png',
+                            failOnCancel: false,
+                        });
+
+                        return;
+                    } catch (imageShareError) {
+                        console.warn(
+                            'RNShare image sharing failed:',
+                            imageShareError
+                        );
+                    }
+                }
+
+                // If image sharing failed, try text-only RNShare
+                try {
+                    await NativeShare.open({
+                        title: target.title,
+                        message,
+                        failOnCancel: false,
+                    });
+
+                    return;
+                } catch (textShareError) {
+                    console.warn('RNShare text sharing failed:', textShareError);
+                }
+            }
+
+            // ==================================================
+            // FINAL FALLBACK
+            // React Native normal Share
+            // ==================================================
+            try {
+                await RNShare.share({ message, title: target.title });
+            } catch (fallbackError) {
+                console.warn('Normal share fallback failed:', fallbackError);
+
+                const errorMessage = fallbackError?.message?.toLowerCase?.() || '';
+
+                if (!errorMessage.includes('cancel')) {
+                    showStatusModal('Unable to Share', 'Unable to open the sharing options. Please try again.');
+                }
+            }
+        } catch (error) {
+            console.warn('Share process failed:', error);
+
+            // Final safety fallback
+            try {
+                await RNShare.share({ message, title: target.title });
+            } catch (fallbackError) {
+                console.warn('Final share fallback failed:', fallbackError);
+            }
         }
     };
 
@@ -195,22 +334,30 @@ export default function ProfileScreen({ onSignOut }) {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Invite card — the star of the redesign */}
-                <Pressable style={styles.inviteCard} onPress={handleInvite}>
-                    <View style={styles.inviteIconWrap}>
-                        <Text style={styles.inviteIcon}>🎁</Text>
+                <View style={styles.inviteCard}>
+                    <View style={styles.inviteHeader}>
+                        <View style={styles.inviteIconWrap}>
+                            <Text style={styles.inviteIcon}>🎁</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.inviteTitle}>Invite someone</Text>
+                            <Text style={styles.inviteSub}>Choose who you're sharing with</Text>
+                        </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.inviteTitle}>Invite Friends & Family</Text>
-                        <Text style={styles.inviteSub}>
-                            Share events, tithis, festivals & reminders with people you care about
-                        </Text>
+
+                    <View style={styles.inviteRow}>
+                        {INVITE_TARGETS.map((t) => (
+                            <Pressable
+                                key={t.key}
+                                style={({ pressed }) => [styles.inviteChip, pressed && { opacity: 0.7 }]}
+                                onPress={() => handleInvite(t)}
+                            >
+                                <Text style={styles.inviteChipIcon}>{t.icon}</Text>
+                                <Text style={styles.inviteChipText}>{t.label}</Text>
+                            </Pressable>
+                        ))}
                     </View>
-                    <View style={styles.inviteArrow}>
-                        <Text style={styles.inviteArrowText}>
-                            <Ionicons name="arrow-forward-sharp" size={16} color="white" />
-                        </Text>
-                    </View>
-                </Pressable>
+                </View>
 
 
                 {/* Preferences */}
@@ -386,18 +533,6 @@ const styles = StyleSheet.create({
 
 
     // Invite card
-    inviteCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
-        backgroundColor: theme.sacredTint,
-        borderRadius: radius.l,
-        borderWidth: 1,
-        borderColor: theme.sacred + '55',
-        padding: spacing.base,
-        marginTop: spacing.xs,
-        marginBottom: spacing.lg,
-    },
     inviteIconWrap: {
         width: 44,
         height: 44,
@@ -693,5 +828,17 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: theme.text,
     },
+    inviteCard: {
+        backgroundColor: theme.sacredTint, borderRadius: radius.l, borderWidth: 1, borderColor: theme.sacred + '55',
+        padding: spacing.base, marginTop: spacing.xs, marginBottom: spacing.lg, gap: spacing.md,
+    },
+    inviteHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    inviteRow: { flexDirection: 'row', gap: spacing.sm },
+    inviteChip: {
+        flex: 1, alignItems: 'center', paddingVertical: spacing.md, borderRadius: radius.md,
+        backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.sacred + '55', gap: 4,
+    },
+    inviteChipIcon: { fontSize: 22 },
+    inviteChipText: { color: theme.sacredText, fontSize: 12, fontWeight: '700', },
 });
 

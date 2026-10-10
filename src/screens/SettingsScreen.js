@@ -7,7 +7,7 @@ import {
   View, Text, Pressable, ScrollView, ActivityIndicator,
   StyleSheet, Alert,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import {
@@ -19,6 +19,7 @@ import Screen from '../components/Screen';
 import ConfirmModal from '../components/ConfirmModal';
 import { useUser } from '../context/UserContext';
 import { updateMyProfile } from '../services/api';
+import Header from '../components/Header';
 
 export const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -54,6 +55,7 @@ export default function SettingsScreen({ onSignOut, route }) {
   const { profile, refreshProfile, selectedLocation, setSelectedLocation } = useUser();
   const scrollViewRef = useRef(null);
   const sectionOffsets = useRef({});
+  const navigation = useNavigation();
   const [calendars, setCalendars] = useState([]);
   const [locations, setLocations] = useState([]);
   const [saving, setSaving] = useState(null);
@@ -139,8 +141,8 @@ export default function SettingsScreen({ onSignOut, route }) {
     return (
       <Screen>
 
+        <Header title="Settings" onBack={() => navigation.goBack()} />
         <View style={{ flex: 1, backgroundColor: theme.surface }}>
-          <Header />
           <ActivityIndicator color={theme.accent} style={{ marginTop: 40 }} />
         </View>
       </Screen>
@@ -150,8 +152,8 @@ export default function SettingsScreen({ onSignOut, route }) {
   return (
     <Screen>
 
+      <Header title="Settings" onBack={() => navigation.goBack()} />
       <ScrollView ref={scrollViewRef} style={{ flex: 1, backgroundColor: theme.surface }}>
-        <Header />
 
         <Section title="Panji source" onLayout={(event) => handleSectionLayout('panji', event)}>
           {calendars.map((cal) => (
@@ -219,14 +221,6 @@ export default function SettingsScreen({ onSignOut, route }) {
         onCancel={() => setShowSignOut(false)}
       />
     </Screen>
-  );
-}
-
-function Header() {
-  return (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>Settings</Text>
-    </View>
   );
 }
 
