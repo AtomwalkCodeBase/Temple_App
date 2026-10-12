@@ -31,13 +31,15 @@ const STACK_SCREEN_OPTIONS = {
   gestureEnabled: true,
 };
 
-function HomeStack() {
+function HomeStack({ onSignOut }) {
   return (
     <Stack.Navigator screenOptions={STACK_SCREEN_OPTIONS}>
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="AddEvent" component={AddEventScreen} options={{ presentation: 'modal', animation: 'slide_from_bottom', }} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="Settings">
+        {() => <SettingsScreen onSignOut={onSignOut} />}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }
@@ -69,13 +71,16 @@ function ProfileStack({ onSignOut }) {
       <Stack.Screen name="ProfileScreen">
         {() => <ProfileScreen onSignOut={onSignOut} />}
       </Stack.Screen>
+      <Stack.Screen name="Settings">
+        {() => <SettingsScreen onSignOut={onSignOut} />}
+      </Stack.Screen>
       {/* <Stack.Screen name="Explore" component={ExploreScreen} /> */}
       {/* <Stack.Screen name="CreateGroup" component={CreateGroupScreen} /> */}
       {/* <Stack.Screen name="GodsScreen" component={GodsScreen} /> */}
       {/* <Stack.Screen name="SongsList" component={SongsListScreen} /> */}
       {/* <Stack.Screen name="CommunityDetail" component={CommunitiesScreen} /> */}
       {/* <Stack.Screen name="GroupDetail" component={GroupsScreen} /> */}
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      {/* <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} /> */}
     </Stack.Navigator>
   );
 }
@@ -127,7 +132,7 @@ function Tabs({ onSignOut }) {
     >
       <Tab.Screen
         name="Today"
-        component={HomeStack}
+        children={() => <HomeStack onSignOut={onSignOut} />}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();

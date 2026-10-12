@@ -5,21 +5,41 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   View, Text, Pressable, ScrollView, ActivityIndicator,
-  StyleSheet, Alert,
+  StyleSheet, Alert, Linking,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import {
   getAvailableCalendars, getAvailableLocations,
-  AUTH_LOGOUT_URL,
+  AUTH_LOGOUT_URL, ACCOUNT_DELETION_INFO_URL,
+  deleteMyAccount,
 } from '../services/api';
 import { theme, radius } from '../theme/theme';
 import Screen from '../components/Screen';
 import ConfirmModal from '../components/ConfirmModal';
+import StatusModal from '../components/StatusModal';
 import { useUser } from '../context/UserContext';
 import { updateMyProfile } from '../services/api';
+import Constants from 'expo-constants';
 import Header from '../components/Header';
+
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+let Notifications = null;
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (err) {
+    console.warn('Failed to load expo-notifications:', err.message);
+  }
+}
 
 export const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -60,6 +80,16 @@ export default function SettingsScreen({ onSignOut, route }) {
   const [locations, setLocations] = useState([]);
   const [saving, setSaving] = useState(null);
   const [showSignOut, setShowSignOut] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteText, setDeleteText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [statusModal, setStatusModal] = useState({
+    visible: false,
+    type: 'error',
+    title: '',
+    message: '',
+    onPrimary: null,
+  });
 
   const load = useCallback(async () => {
     try {
@@ -137,6 +167,71 @@ export default function SettingsScreen({ onSignOut, route }) {
     onSignOut();
   };
 
+
+  const confirmDelete = async () => {
+    if (deleteText.trim().toUpperCase() !== 'DELETE' || deleting) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      // 1. Try to delete the account from the server
+      try {
+        await deleteMyAccount();
+      } catch (apiError) {
+        console.warn('Server delete failed, continuing with local cleanup:', apiError.message);
+      }
+
+      // Cancel locally scheduled reminders if not running in Expo Go
+      if (Notifications?.cancelAllScheduledNotificationsAsync) {
+        await Notifications.cancelAllScheduledNotificationsAsync().catch(() => { });
+      }
+
+      // Clear ALL AsyncStorage data (auth token, settings, etc.)
+      await AsyncStorage.clear();
+
+      // 3. Clear SecureStore (Keychain) biometric saved credentials
+      await SecureStore.deleteItemAsync('saved_username').catch(() => { });
+      await SecureStore.deleteItemAsync('saved_password').catch(() => { });
+
+      setDeleteOpen(false);
+      setDeleteText('');
+
+      // 4. Show success StatusModal, then redirect to login screen
+      setStatusModal({
+        visible: true,
+        type: 'success',
+        title: 'Account Deleted',
+        message: 'Your account and data have been removed successfully.',
+        onPrimary: () => {
+          setStatusModal((prev) => ({ ...prev, visible: false }));
+          if (typeof onSignOut === 'function') {
+            onSignOut();
+          }
+        },
+      });
+
+      // Auto redirect after 2.5 seconds
+      setTimeout(() => {
+        if (typeof onSignOut === 'function') {
+          onSignOut();
+        }
+      }, 2500);
+    } catch (e) {
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Could not delete account',
+        message: e?.message || 'An unexpected error occurred while deleting your account.',
+        onPrimary: () => setStatusModal((prev) => ({ ...prev, visible: false })),
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+
   if (!profile) {
     return (
       <Screen>
@@ -199,13 +294,109 @@ export default function SettingsScreen({ onSignOut, route }) {
           ))}
         </Section>
 
-        {/* <Pressable style={styles.signOutButton} onPress={signOut}>
-          <Ionicons name="log-out-outline" size={16} color="#993C1D" />
-          <Text style={styles.signOutText}>  Sign out</Text>
-        </Pressable> */}
+        <Pressable
+          style={styles.deleteButton}
+          onPress={() => {
+            setDeleteText('');
+            setDeleteOpen(true);
+          }}
+        >
+          <Ionicons name="trash-outline" size={16} color="#fff" />
+          <Text style={styles.deleteText}>  Delete account</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => Linking.openURL(ACCOUNT_DELETION_INFO_URL)}
+        >
+          <Text style={styles.deleteInfo}>
+            How account deletion works
+          </Text>
+        </Pressable>
 
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      <Modal
+        visible={deleteOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!deleting) setDeleteOpen(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalBackdrop}>
+              <TouchableWithoutFeedback onPress={(e) => e.stopPropagation?.()}>
+                <View style={styles.modalCard}>
+                  <Text style={styles.modalTitle}>
+                    Delete your account?
+                  </Text>
+
+                  <Text style={styles.modalBody}>
+                    This permanently deletes your profile, events, reminders
+                    and shared contacts. It cannot be undone.
+                    {'\n\n'}
+                    Type DELETE to confirm.
+                  </Text>
+
+                  <TextInput
+                    style={styles.modalInput}
+                    value={deleteText}
+                    onChangeText={setDeleteText}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    placeholder="DELETE"
+                    placeholderTextColor={theme.textMuted}
+                  />
+
+                  <View style={styles.modalRow}>
+                    <Pressable
+                      style={styles.modalCancel}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setDeleteOpen(false);
+                      }}
+                      disabled={deleting}
+                    >
+                      <Text style={styles.modalCancelText}>Cancel</Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.modalConfirm,
+                        (
+                          deleteText.trim().toUpperCase() !== 'DELETE' ||
+                          deleting
+                        ) && { opacity: 0.4 },
+                      ]}
+                      disabled={
+                        deleteText.trim().toUpperCase() !== 'DELETE' ||
+                        deleting
+                      }
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        confirmDelete();
+                      }}
+                    >
+                      {deleting ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.modalConfirmText}>
+                          Delete forever
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <ConfirmModal
         visible={showSignOut}
@@ -219,6 +410,27 @@ export default function SettingsScreen({ onSignOut, route }) {
           handleSignOut();
         }}
         onCancel={() => setShowSignOut(false)}
+      />
+
+      <StatusModal
+        visible={statusModal.visible}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        onPrimary={() => {
+          if (statusModal.onPrimary) {
+            statusModal.onPrimary();
+          } else {
+            setStatusModal((prev) => ({ ...prev, visible: false }));
+          }
+        }}
+        onRequestClose={() => {
+          if (statusModal.onPrimary) {
+            statusModal.onPrimary();
+          } else {
+            setStatusModal((prev) => ({ ...prev, visible: false }));
+          }
+        }}
       />
     </Screen>
   );
@@ -276,4 +488,88 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAECE7', borderRadius: radius.m,
   },
   signOutText: { fontSize: 14, fontWeight: '600', color: '#993C1D' },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    marginHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: theme.error,
+    borderRadius: radius.m,
+  },
+  deleteText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  deleteInfo: {
+    fontSize: 12,
+    color: theme.textMuted,
+    textAlign: 'center',
+    marginTop: 8,
+    textDecorationLine: 'underline',
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: theme.surface,
+    borderRadius: radius.l,
+    padding: 18,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.text,
+    marginBottom: 8,
+  },
+  modalBody: {
+    fontSize: 13,
+    color: theme.textMuted,
+    lineHeight: 19,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: radius.m,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 12,
+    color: theme.text,
+    letterSpacing: 2,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  modalCancel: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 11,
+    borderRadius: radius.m,
+    backgroundColor: theme.surfaceAlt,
+  },
+  modalCancelText: {
+    color: theme.text,
+    fontWeight: '600',
+  },
+  modalConfirm: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 11,
+    borderRadius: radius.m,
+    backgroundColor: '#993C1D',
+  },
+  modalConfirmText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
 });

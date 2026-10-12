@@ -10,8 +10,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, Pressable,
-  ActivityIndicator, StyleSheet,
+  ActivityIndicator, StyleSheet, Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import dayjs from 'dayjs';
 import { trackByEventType, createWeekdaySeries, trackByEventSelected, getRecurringEventsType } from '../../services/api';
@@ -44,6 +45,8 @@ const TABS = [
   { key: 'BY_TYPE', label: 'By observance', icon: 'moon-outline' },
   { key: 'WEEKDAY', label: 'By weekday', icon: 'calendar-outline' },
 ];
+
+const toOurDay = (jsDay) => (jsDay + 6) % 7;
 
 export default function BulkRemindersScreen({ navigation }) {
   const [tab, setTab] = useState('BY_TYPE');
@@ -244,10 +247,34 @@ function EventTypeSection({ navigation }) {
   );
 }
 
+function anchorForPickedDate(pickedDate, weekday) {
+  const picked = dayjs(pickedDate);
+  const pickedOurDay = toOurDay(picked.day());
+
+  // Distance backwards from picked day to weekday (0 if same day)
+  const back = (pickedOurDay - weekday + 7) % 7;
+
+  // If same weekday, go back a full week so backend's strict "after" still matches
+  const offset = back === 0 ? -1 : -back;
+
+  return picked.add(offset, 'day');
+}
+
+// Last date of the series for preview
+function lastOccurrence(pickedDate, count) {
+  return dayjs(pickedDate).add((Number(count) - 1) * 7, 'day');
+}
+
 // ---- Tab 2: weekday series (unchanged logic, just lives in its own tab now) ----
 function WeekdaySeriesSection({ navigation }) {
   const [title, setTitle] = useState('');
-  const [weekday, setWeekday] = useState(0);
+  const [weekday, setWeekday] = useState(0); // Mon
+  const [startDate, setStartDate] = useState(() => {
+    const today = dayjs();
+    const diff = (0 - toOurDay(today.day()) + 7) % 7 || 7; // next Mon
+    return today.add(diff, 'day').toDate();
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [count, setCount] = useState('5');
   const [reminders, setReminders] = useState([1440]);
   const [saving, setSaving] = useState(false);
@@ -269,8 +296,10 @@ function WeekdaySeriesSection({ navigation }) {
     if (!title.trim()) return;
     setSaving(true);
     try {
+      const anchor = anchorForPickedDate(startDate, weekday);
       const res = await createWeekdaySeries({
-        title: title.trim(), weekday, count: Number(count), reminder_minutes: reminders,
+        title: title.trim(), weekday, start_date: anchor.format('YYYY-MM-DD'),
+        count: Number(count), reminder_minutes: reminders,
       });
       for (const ev of res.events) {
         await scheduleEventReminders(
@@ -301,15 +330,73 @@ function WeekdaySeriesSection({ navigation }) {
       <Text style={styles.label}>Which day</Text>
       <View style={styles.chipRow}>
         {WEEKDAYS.map((w) => (
-          <Pressable key={w.key} onPress={() => setWeekday(w.key)}
-            style={[styles.chip, weekday === w.key && styles.chipActive]}>
-            <Text style={[styles.chipText, weekday === w.key && styles.chipTextActive]}>{w.label}</Text>
+          <Pressable
+            key={w.key}
+            onPress={() => {
+              setWeekday(w.key);
+              // Snap picked date to the next occurrence of the new weekday
+              const today = dayjs();
+              const diff = (w.key - toOurDay(today.day()) + 7) % 7 || 7;
+              setStartDate(today.add(diff, 'day').toDate());
+            }}
+            style={[styles.chip, weekday === w.key && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, weekday === w.key && styles.chipTextActive]}>
+              {w.label}
+            </Text>
           </Pressable>
         ))}
       </View>
 
+      <Text style={styles.label}>Start date</Text>
+      <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+        <Text style={styles.inputText}>{dayjs(startDate).format('dddd, D MMMM YYYY')}</Text>
+      </Pressable>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={startDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          minimumDate={new Date()}
+          onChange={(event, date) => {
+            setShowDatePicker(Platform.OS === 'ios');
+            if (event.type === 'dismissed' || !date) return;
+
+            const picked = dayjs(date);
+            const pickedOurDay = toOurDay(picked.day());
+
+            // If the user picked the wrong weekday, snap to the next correct one
+            if (pickedOurDay !== weekday) {
+              const forward = (weekday - pickedOurDay + 7) % 7 || 7;
+              setStartDate(picked.add(forward, 'day').toDate());
+            } else {
+              setStartDate(picked.toDate());
+            }
+          }}
+        />
+      )}
+      <Text style={styles.helper}>
+        *Select the date you'd like to start getting reminders from.*
+      </Text>
       <Text style={styles.label}>How many weeks</Text>
       <TextInput style={styles.input} keyboardType="number-pad" value={count} onChangeText={setCount} />
+
+      {Number(count) > 0 && (
+        <View style={styles.previewBox}>
+          <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <Text style={styles.previewTitle}>
+              {count} {Number(count) === 1 ? 'reminder' : 'reminders'}, every{' '}
+              {WEEKDAYS.find(w => w.key === weekday)?.label}
+            </Text>
+            <Text style={styles.previewSub}>
+              {dayjs(startDate).format('D MMM')}
+              {Number(count) > 1 && ` → ${lastOccurrence(startDate, count).format('D MMM YYYY')}`}
+            </Text>
+          </View>
+        </View>
+      )}
 
       <Text style={styles.label}>Remind me</Text>
       {REMINDER_OPTIONS.map((opt) => {
@@ -317,7 +404,7 @@ function WeekdaySeriesSection({ navigation }) {
         return (
           <Pressable key={opt.minutes} style={styles.checkboxRow} onPress={() => toggleReminder(opt.minutes)}>
             <Ionicons name={on ? 'checkbox' : 'square-outline'} size={18}
-              color={on ? theme.prim0ary : theme.textMuted} />
+              color={on ? theme.primary : theme.textMuted} />
             <Text style={styles.checkboxLabel}>{'  '}{opt.label}</Text>
           </Pressable>
         );
@@ -366,6 +453,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, color: theme.text,
     backgroundColor: theme.surfaceAlt,
   },
+  inputText: { fontSize: 14, color: theme.text },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border,
@@ -409,4 +497,14 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   resultBox: { backgroundColor: theme.sacredTint, borderRadius: radius.m, padding: 12, marginTop: 12 },
   resultText: { fontSize: 13, color: theme.sacredText, lineHeight: 19 },
+  helper: {
+    fontSize: 12, color: theme.textMuted, marginBottom: 6, lineHeight: 17, marginTop: 4, fontWeight: 600
+  },
+  previewBox: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: theme.primaryTint,
+    borderRadius: radius.m, padding: 10, marginTop: 10,
+  },
+  previewTitle: { fontSize: 13, fontWeight: '700', color: theme.primaryDark },
+  previewSub: { fontSize: 12, color: theme.text, marginTop: 2 },
 });

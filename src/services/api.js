@@ -5,7 +5,7 @@ export const BASE_URL = `${ROOT_URL}/event`;
 export const ADMIN_API_URL = `${BASE_URL}/admin_api`;
 
 export const AUTH_LOGIN_URL = `${ROOT_URL}/auth/login/`;
-
+export const AUTH_LOGOUT_URL = `${ROOT_URL}/auth/logout/`;
 export const REGISTER_URL = `${BASE_URL}/auth/register/`;
 
 
@@ -58,7 +58,8 @@ export const listUserEvents = () => request('/user-events/');
 // ---- Profile / Settings ----
 export const getMyProfile = () => request('/profile/me/');
 export const updateMyProfile = (payload) => request('/profile/me/', { method: 'PATCH', body: payload });
-
+export const deleteMyAccount = () => request('/account/delete/', { method: 'POST', body: { confirm: 'DELETE' } });
+export const ACCOUNT_DELETION_INFO_URL = `${BASE_URL}/account/deletion-info/`;
 export const getAvailableCalendars = () => request('/calendars/available/');
 export const getAvailableLocations = () => request('/locations/available/');
 

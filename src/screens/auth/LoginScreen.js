@@ -6,10 +6,9 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { AUTH_LOGIN_URL } from '../../services/api';
 import { theme, radius, spacing, fontSize } from '../../theme/theme';
 import StatusModal from '../../components/StatusModal';
-import { Eye, EyeClosed, Moon, Fingerprint } from 'lucide-react-native';
+import { Eye, EyeClosed, Fingerprint, ScanFace } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function LoginScreen({ onLoggedIn, onGoToRegister, onGoToPhoneAuth }) {
   const insets = useSafeAreaInsets();
@@ -19,25 +18,97 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister, onGoToPhoneAut
   const [busy, setBusy] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState({ title: "", message: "" });
+
+  //biometric device status
   const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricType, setBiometricType] = useState(null);
   const [hasSavedCreds, setHasSavedCreds] = useState(false);
 
   const appVersion = Constants.expoConfig?.version || '0.0.1';
 
   useEffect(() => {
-    (async () => {
-      const compatible = await LocalAuthentication.hasHardwareAsync();
-      const enrolled = await LocalAuthentication.isEnrolledAsync();
-      if (compatible && enrolled) setBiometricSupported(true);
-      const savedUser = await SecureStore.getItemAsync('saved_username');
-      const savedPass = await SecureStore.getItemAsync('saved_password');
-      if (savedUser && savedPass) {
-        setHasSavedCreds(true);
-        if (compatible && enrolled) {
-          setTimeout(() => handleBiometricAuth(), 400);
+    let isMounted = true;
+
+    const initializeBiometric = async () => {
+      try {
+        const compatible = await LocalAuthentication.hasHardwareAsync();
+
+        if (!compatible) {
+          if (isMounted) {
+            setBiometricSupported(false);
+            setBiometricType(null);
+          }
+          return;
+        }
+
+        const enrolled = await LocalAuthentication.isEnrolledAsync();
+
+        if (!enrolled) {
+          if (isMounted) {
+            setBiometricSupported(false);
+            setBiometricType(null);
+          }
+          return;
+        }
+
+        const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+
+        let detectedType = null;
+
+        // Prefer Face ID when available
+        if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+          detectedType = 'face';
+        }
+
+        // Fingerprint covers Touch ID on iOS and fingerprint
+        // authentication on Android.
+        else if (
+          supportedTypes.includes(
+            LocalAuthentication.AuthenticationType.FINGERPRINT
+          )
+        ) {
+          detectedType = 'fingerprint';
+        }
+
+        if (isMounted) {
+          setBiometricType(detectedType);
+          setBiometricSupported(!!detectedType);
+        }
+
+        // Check whether saved credentials exist
+        const savedUser = await SecureStore.getItemAsync('saved_username');
+        const savedPass = await SecureStore.getItemAsync('saved_password');
+
+        if (savedUser && savedPass && detectedType) {
+          if (isMounted) {
+            setHasSavedCreds(true);
+          }
+
+          // Automatically trigger biometric login
+          setTimeout(() => {
+            if (isMounted) {
+              handleBiometricAuth();
+            }
+          }, 400);
+        } else if (isMounted) {
+          setHasSavedCreds(false);
+        }
+      } catch (error) {
+        console.warn('Biometric initialization failed:', error);
+
+        if (isMounted) {
+          setBiometricSupported(false);
+          setBiometricType(null);
+          setHasSavedCreds(false);
         }
       }
-    })();
+    };
+
+    initializeBiometric();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const performLogin = async (u, p) => {
@@ -76,21 +147,92 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister, onGoToPhoneAut
   };
 
   const handleBiometricAuth = async () => {
+    if (busy) return;
+
     try {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+
+      if (!compatible) {
+        // Device doesn't have biometric hardware — silently hide the button
+        setBiometricSupported(false);
+        return;
+      }
+
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (!enrolled) {
+        // Face ID / fingerprint not set up on this device
+        setShowModal(true);
+        setModalData({
+          title: 'Biometrics Not Set Up',
+          message:
+            biometricType === 'face'
+              ? 'Face ID is not set up on this device. Go to Settings → Face ID & Passcode to enable it.'
+              : 'No fingerprint is enrolled on this device. Go to Settings to set it up.',
+        });
+        return;
+      }
+
+      // Check if our app has permission to use Face ID (iOS only)
+      const permissionResult = await LocalAuthentication.getEnrolledLevelAsync();
+      // permissionResult === 0 means no biometrics available/permitted
+      if (permissionResult === LocalAuthentication.SecurityLevel.NONE) {
+        setShowModal(true);
+        setModalData({
+          title: 'Permission Required',
+          message:
+            'Face ID access is not permitted for this app. Go to Settings → Privacy → Face ID & Passcode and enable access for this app.',
+        });
+        return;
+      }
+
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Login to Agam Mandira',
-        fallbackLabel: 'Use Password',
+        promptMessage:
+          biometricType === 'face'
+            ? 'Login with Face ID'
+            : 'Login with Fingerprint',
+        disableDeviceFallback: false, // Prevent iOS from falling back to device passcode
       });
 
-      if (result.success) {
-        const savedUser = await SecureStore.getItemAsync('saved_username');
-        const savedPass = await SecureStore.getItemAsync('saved_password');
-        if (savedUser && savedPass) {
-          await performLogin(savedUser, savedPass);
+      if (!result.success) {
+        // Handle specific error codes
+        if (result.error === 'not_enrolled') {
+          setShowModal(true);
+          setModalData({
+            title: 'Biometrics Not Set Up',
+            message: 'Please set up Face ID or fingerprint in your device Settings.',
+          });
+        } else if (result.error === 'not_available') {
+          // Silently hide the biometric option
+          setBiometricSupported(false);
+          setHasSavedCreds(false);
         }
+        // For 'user_cancel' or 'system_cancel' — just do nothing, let user try again
+        return;
       }
-    } catch (e) {
-      console.warn('Biometric auth failed:', e);
+
+      const savedUser = await SecureStore.getItemAsync('saved_username');
+      const savedPass = await SecureStore.getItemAsync('saved_password');
+
+      if (!savedUser || !savedPass) {
+        // Credentials were cleared — hide biometric and ask user to log in manually
+        setHasSavedCreds(false);
+        setBiometricSupported(false);
+        return;
+      }
+
+      await performLogin(savedUser, savedPass);
+    } catch (error) {
+      console.warn('Biometric authentication failed:', error);
+      // Could be a permission denial on iOS — inform the user
+      if (error?.message?.toLowerCase().includes('permission')) {
+        setShowModal(true);
+        setModalData({
+          title: 'Face ID Permission Denied',
+          message:
+            'This app does not have permission to use Face ID. Go to Settings → Privacy → Face ID & Passcode and allow access.',
+        });
+      }
     }
   };
 
@@ -167,7 +309,7 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister, onGoToPhoneAut
           <Text style={styles.link}>Forgot password?</Text>
         </Pressable>
 
-        {hasSavedCreds && biometricSupported && (
+        {hasSavedCreds && biometricSupported && biometricType && (
           <>
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
@@ -175,10 +317,25 @@ export default function LoginScreen({ onLoggedIn, onGoToRegister, onGoToPhoneAut
               <View style={styles.dividerLine} />
             </View>
 
-            <Pressable style={styles.biometricCircleLarge} onPress={handleBiometricAuth} disabled={busy}>
-              {busy ? <ActivityIndicator color={theme.primary} /> : <Fingerprint size={60} color={theme.primary} />}
+            <Pressable
+              style={styles.biometricCircleLarge}
+              onPress={handleBiometricAuth}
+              disabled={busy}
+            >
+              {busy ? (
+                <ActivityIndicator color={theme.primary} />
+              ) : biometricType === 'face' ? (
+                <ScanFace size={60} color={theme.primary} />
+              ) : (
+                <Fingerprint size={60} color={theme.primary} />
+              )}
             </Pressable>
-            <Text style={styles.biometricLabel}>Login with Fingerprint</Text>
+
+            <Text style={styles.biometricLabel}>
+              {biometricType === 'face'
+                ? 'Login with Face ID'
+                : 'Login with Fingerprint'}
+            </Text>
           </>
         )}
 
